@@ -61,23 +61,32 @@ public:
 	{
 		GLfloat velocity = this->movementSpeed * deltaTime;
 
+		glm::vec3 front_xz = glm::vec3(this->front.x, 0.0f, this->front.z);
+
+		if (glm::length(front_xz) > 0.0001f)
+			front_xz = glm::normalize(front_xz);
+
 		if (direction == FORWARD)
 		{
-			this->position += this->front * velocity;
+			//this->position += this->front * velocity;
+			this->position += front_xz * velocity;
 		}
 
 		if (direction == BACKWARD)
 		{
-			this->position -= this->front * velocity;
+			//this->position -= this->front * velocity;
+			this->position -= front_xz * velocity;
 		}
 
 		if (direction == LEFT)
 		{
+			//this->position -= this->right * velocity;
 			this->position -= this->right * velocity;
 		}
 
 		if (direction == RIGHT)
 		{
+			//this->position += this->right * velocity;
 			this->position += this->right * velocity;
 		}
 	}
