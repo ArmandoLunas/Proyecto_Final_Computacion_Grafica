@@ -617,6 +617,7 @@ int main()
 		glDisable(GL_BLEND);  //Desactiva el canal alfa 
 		glBindVertexArray(0);
 
+		// shader para animación por huesos
 		shaderEsqueletico.Use();
 
 		// viewPos (Posición de la cámara)
@@ -661,8 +662,6 @@ int main()
 		for (int i = 0; i < boneMatrices.size(); ++i)
 		{
 			string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
-
-			// DEBE SER shaderEsqueletico.Program
 			glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(boneMatrices[i]));
 		}
 
@@ -709,8 +708,6 @@ int main()
 	
 	// Terminate GLFW, clearing any resources allocated by GLFW.
 	glfwTerminate();
-
-
 
 	return 0;
 }
