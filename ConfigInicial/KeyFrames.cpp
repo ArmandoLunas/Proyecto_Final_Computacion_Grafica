@@ -628,8 +628,9 @@ int main() {
                 glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(boneMatrices[i]));
             }
             model = glm::mat4(1.0f);
-            model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
-            model = glm::scale(model, glm::vec3(0.01f));
+            model = glm::translate(model, glm::vec3(-0.313893f, 0.1f, -9.00147f));
+			model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(0.0046f));
             glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
             humanModel.Draw(shaderEsqueletico);
         }

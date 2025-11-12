@@ -1,250 +1,289 @@
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
 #include <map>
+#include <iostream>
+#include <functional>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
 #include "bone.h"
-#include "Model.h"
+#include "Model.h" 
 
-// Clase que maneja los keyframes de un hueso
-class Bone
+using namespace std;
+
+
+// --- Función Helper para convertir matrices de Assimp a GLM ---
+inline glm::mat4 AssimpToGLMmat4(const aiMatrix4x4& from)
 {
-public:
-    Bone(const std::string& name, int ID, const aiNodeAnim* channel)
-        : m_Name(name), m_ID(ID), m_LocalTransform(1.0f)
-    {
-        // Copiar Keyframes de Posición
-        for (int i = 0; i < channel->mNumPositionKeys; ++i)
-        {
-            KeyPosition data;
-            data.position = glm::vec3(channel->mPositionKeys[i].mValue.x, channel->mPositionKeys[i].mValue.y, channel->mPositionKeys[i].mValue.z);
-            data.timeStamp = channel->mPositionKeys[i].mTime;
-            m_Positions.push_back(data);
-        }
-        // Copiar Keyframes de Rotación
-        for (int i = 0; i < channel->mNumRotationKeys; ++i)
-        {
-            KeyRotation data;
-            data.orientation = glm::quat(channel->mRotationKeys[i].mValue.w, channel->mRotationKeys[i].mValue.x, channel->mRotationKeys[i].mValue.y, channel->mRotationKeys[i].mValue.z);
-            data.timeStamp = channel->mRotationKeys[i].mTime;
-            m_Rotations.push_back(data);
-        }
-        // Copiar Keyframes de Escala
-        for (int i = 0; i < channel->mNumScalingKeys; ++i)
-        {
-            KeyScale data;
-            data.scale = glm::vec3(channel->mScalingKeys[i].mValue.x, channel->mScalingKeys[i].mValue.y, channel->mScalingKeys[i].mValue.z);
-            data.timeStamp = channel->mScalingKeys[i].mTime;
-            m_Scales.push_back(data);
-        }
-    }
+	glm::mat4 to;
+	to[0][0] = from.a1; to[1][0] = from.a2; to[2][0] = from.a3; to[3][0] = from.a4;
+	to[0][1] = from.b1; to[1][1] = from.b2; to[2][1] = from.b3; to[3][1] = from.b4;
+	to[0][2] = from.c1; to[1][2] = from.c2; to[2][2] = from.c3; to[3][2] = from.c4;
+	to[0][3] = from.d1; to[1][3] = from.d2; to[2][3] = from.d3; to[3][3] = from.d4;
+	return to;
+}
 
-    // Interpola y actualiza la m_LocalTransform de este hueso
-    void Update(float animationTime)
-    {
-        glm::mat4 translation = InterpolatePosition(animationTime);
-        glm::mat4 rotation = InterpolateRotation(animationTime);
-        glm::mat4 scale = InterpolateScale(animationTime);
-        m_LocalTransform = translation * rotation * scale;
-    }
+// --- Función Helper para convertir vectores de Assimp a GLM ---
+inline glm::vec3 AssimpToGLMVec3(const aiVector3D& vec)
+{
+	return glm::vec3(vec.x, vec.y, vec.z);
+}
 
-    glm::mat4 GetLocalTransform() { return m_LocalTransform; }
-    std::string GetBoneName() const { return m_Name; }
-    int GetBoneID() { return m_ID; }
-
-private:
-    // --- Funciones de Interpolación ---
-
-    // Interpolar Posición
-    glm::mat4 InterpolatePosition(float animationTime)
-    {
-
-        if (m_Positions.empty())
-            return glm::mat4(1.0f);
-
-        if (m_Positions.size() == 1)
-            return glm::translate(glm::mat4(1.0f), m_Positions[0].position);
-
-        int p0Index = GetPositionIndex(animationTime);
-        int p1Index = p0Index + 1;
-        float scaleFactor = GetScaleFactor(m_Positions[p0Index].timeStamp, m_Positions[p1Index].timeStamp, animationTime);
-        glm::vec3 finalPosition = glm::mix(m_Positions[p0Index].position, m_Positions[p1Index].position, scaleFactor);
-
-        return glm::translate(glm::mat4(1.0f), finalPosition);
-    }
-
-    // Interpolar Rotación
-    glm::mat4 InterpolateRotation(float animationTime)
-    {
-
-        if (m_Rotations.empty())
-            return glm::mat4(1.0f);
-
-        if (m_Rotations.size() == 1)
-            return glm::toMat4(glm::normalize(m_Rotations[0].orientation));
-
-        int r0Index = GetRotationIndex(animationTime);
-        int r1Index = r0Index + 1;
-        float scaleFactor = GetScaleFactor(m_Rotations[r0Index].timeStamp, m_Rotations[r1Index].timeStamp, animationTime);
-        glm::quat finalRotation = glm::slerp(m_Rotations[r0Index].orientation, m_Rotations[r1Index].orientation, scaleFactor);
-        finalRotation = glm::normalize(finalRotation);
-
-        return glm::toMat4(finalRotation);
-    }
-
-    // Interpolar Escala
-    glm::mat4 InterpolateScale(float animationTime)
-    {
-
-        if (m_Scales.empty())
-            return glm::mat4(1.0f);
-
-        if (m_Scales.size() == 1)
-            return glm::scale(glm::mat4(1.0f), m_Scales[0].scale);
-
-        int s0Index = GetScaleIndex(animationTime);
-        int s1Index = s0Index + 1;
-        float scaleFactor = GetScaleFactor(m_Scales[s0Index].timeStamp, m_Scales[s1Index].timeStamp, animationTime);
-        glm::vec3 finalScale = glm::mix(m_Scales[s0Index].scale, m_Scales[s1Index].scale, scaleFactor);
-
-        return glm::scale(glm::mat4(1.0f), finalScale);
-    }
+// --- Función Helper para convertir cuaterniones de Assimp a GLM ---
+inline glm::quat AssimpToGLMQuat(const aiQuaternion& quat)
+{
+	return glm::quat(quat.w, quat.x, quat.y, quat.z);
+}
 
 
-    // --- Funciones de ayuda para encontrar keyframes ---
+// Representa un solo hueso o nodo animado con sus keyframes
+struct Bone
+{
+	std::vector<aiVectorKey> m_PositionKeys;
+	std::vector<aiQuatKey> m_RotationKeys;
+	std::vector<aiVectorKey> m_ScalingKeys;
 
-    float GetScaleFactor(float lastTimeStamp, float nextTimeStamp, float animationTime)
-    {
-        float scaleFactor = 0.0f;
-        float midWayLength = animationTime - lastTimeStamp;
-        float framesDiff = nextTimeStamp - lastTimeStamp;
-        scaleFactor = midWayLength / framesDiff;
-        return scaleFactor;
-    }
+	glm::mat4 m_LocalTransform;
+	std::string m_Name;
+	int m_NumPositions;
+	int m_NumRotations;
+	int m_NumScalings;
 
-    int GetPositionIndex(float animationTime)
-    {
-        for (int index = 0; index < m_Positions.size() - 1; ++index)
-            if (animationTime < m_Positions[index + 1].timeStamp) return index;
-        return 0;
-    }
-    int GetRotationIndex(float animationTime)
-    {
-        for (int index = 0; index < m_Rotations.size() - 1; ++index)
-            if (animationTime < m_Rotations[index + 1].timeStamp) return index;
-        return 0;
-    }
-    int GetScaleIndex(float animationTime)
-    {
-        for (int index = 0; index < m_Scales.size() - 1; ++index)
-            if (animationTime < m_Scales[index + 1].timeStamp) return index;
-        return 0;
-    }
+	Bone(const std::string& name, aiNodeAnim* channel)
+		: m_Name(name), m_LocalTransform(1.0f)
+	{
+		m_NumPositions = channel->mNumPositionKeys;
+		for (int i = 0; i < m_NumPositions; ++i)
+			m_PositionKeys.push_back(channel->mPositionKeys[i]);
 
+		m_NumRotations = channel->mNumRotationKeys;
+		for (int i = 0; i < m_NumRotations; ++i)
+			m_RotationKeys.push_back(channel->mRotationKeys[i]);
 
-    std::vector<KeyPosition> m_Positions;
-    std::vector<KeyRotation> m_Rotations;
-    std::vector<KeyScale> m_Scales;
+		m_NumScalings = channel->mNumScalingKeys;
+		for (int i = 0; i < m_NumScalings; ++i)
+			m_ScalingKeys.push_back(channel->mScalingKeys[i]);
+	}
 
-    glm::mat4 m_LocalTransform;
-    std::string m_Name;
-    int m_ID;
+	// Interpola entre keyframes
+	void Update(float animationTime)
+	{
+		glm::mat4 translation = InterpolatePosition(animationTime);
+		glm::mat4 rotation = InterpolateRotation(animationTime);
+		glm::mat4 scale = InterpolateScaling(animationTime);
+		m_LocalTransform = translation * rotation * scale;
+	}
+
+	// --- Funciones de Interpolación ---
+	int GetPositionIndex(float animationTime)
+	{
+		for (int index = 0; index < m_NumPositions - 1; ++index)
+			if (animationTime < m_PositionKeys[index + 1].mTime)
+				return index;
+		return m_NumPositions - 1; // Devolver el último índice si el tiempo se pasa
+	}
+
+	int GetRotationIndex(float animationTime)
+	{
+		for (int index = 0; index < m_NumRotations - 1; ++index)
+			if (animationTime < m_RotationKeys[index + 1].mTime)
+				return index;
+		return m_NumRotations - 1; // Devolver el último índice
+	}
+
+	int GetScaleIndex(float animationTime)
+	{
+		for (int index = 0; index < m_NumScalings - 1; ++index)
+			if (animationTime < m_ScalingKeys[index + 1].mTime)
+				return index;
+		return m_NumScalings - 1; // Devolver el último índice
+	}
+
+	float GetScaleFactor(float lastTimeStamp, float nextTimeStamp, float animationTime)
+	{
+		if (nextTimeStamp == lastTimeStamp) return 0.0f;
+
+		float midWayLength = animationTime - lastTimeStamp;
+		float framesDiff = nextTimeStamp - lastTimeStamp;
+		float scaleFactor = midWayLength / framesDiff;
+		return glm::clamp(scaleFactor, 0.0f, 1.0f); // entre 0 y 1
+	}
+
+	glm::mat4 InterpolatePosition(float animationTime)
+	{
+		if (m_NumPositions == 0) return glm::mat4(1.0f); // Sin claves de posición
+		if (m_NumPositions == 1)
+			return glm::translate(glm::mat4(1.0f), AssimpToGLMVec3(m_PositionKeys[0].mValue));
+
+		int p0Index = GetPositionIndex(animationTime);
+		int p1Index = p0Index + 1;
+
+		// Manejar el caso de estar en o más allá del último keyframe
+		if (p1Index >= m_NumPositions)
+		{
+			return glm::translate(glm::mat4(1.0f), AssimpToGLMVec3(m_PositionKeys[p0Index].mValue));
+		}
+
+		float scaleFactor = GetScaleFactor(m_PositionKeys[p0Index].mTime, m_PositionKeys[p1Index].mTime, animationTime);
+		aiVector3D finalPosition = m_PositionKeys[p0Index].mValue + scaleFactor * (m_PositionKeys[p1Index].mValue - m_PositionKeys[p0Index].mValue);
+		return glm::translate(glm::mat4(1.0f), AssimpToGLMVec3(finalPosition));
+	}
+
+	glm::mat4 InterpolateRotation(float animationTime)
+	{
+		if (m_NumRotations == 0) return glm::mat4(1.0f); // Sin claves de rotación
+		if (m_NumRotations == 1)
+		{
+			return glm::mat4_cast(AssimpToGLMQuat(m_RotationKeys[0].mValue));
+		}
+
+		int p0Index = GetRotationIndex(animationTime);
+		int p1Index = p0Index + 1;
+
+		// Manejar el caso de estar en o más allá del último keyframe
+		if (p1Index >= m_NumRotations)
+		{
+			return glm::mat4_cast(AssimpToGLMQuat(m_RotationKeys[p0Index].mValue));
+		}
+
+		float scaleFactor = GetScaleFactor(m_RotationKeys[p0Index].mTime, m_RotationKeys[p1Index].mTime, animationTime);
+
+		aiQuaternion finalRotation;
+		aiQuaternion::Interpolate(finalRotation, m_RotationKeys[p0Index].mValue, m_RotationKeys[p1Index].mValue, scaleFactor);
+		finalRotation = finalRotation.Normalize();
+		return glm::mat4_cast(AssimpToGLMQuat(finalRotation));
+	}
+
+	glm::mat4 InterpolateScaling(float animationTime)
+	{
+		if (m_NumScalings == 0) return glm::mat4(1.0f); // Sin claves de escala
+		if (m_NumScalings == 1)
+			return glm::scale(glm::mat4(1.0f), AssimpToGLMVec3(m_ScalingKeys[0].mValue));
+
+		int p0Index = GetScaleIndex(animationTime);
+		int p1Index = p0Index + 1;
+
+		// Manejar el caso de estar en o más allá del último keyframe
+		if (p1Index >= m_NumScalings)
+		{
+			return glm::scale(glm::mat4(1.0f), AssimpToGLMVec3(m_ScalingKeys[p0Index].mValue));
+		}
+
+		float scaleFactor = GetScaleFactor(m_ScalingKeys[p0Index].mTime, m_ScalingKeys[p1Index].mTime, animationTime);
+		aiVector3D finalScale = m_ScalingKeys[p0Index].mValue + scaleFactor * (m_ScalingKeys[p1Index].mValue - m_ScalingKeys[p0Index].mValue);
+		return glm::scale(glm::mat4(1.0f), AssimpToGLMVec3(finalScale));
+	}
 };
 
 // Estructura para almacenar la jerarquía de nodos de Assimp
 struct AssimpNodeData
 {
-    glm::mat4 transformation;
-    std::string name;
-    int childrenCount;
-    std::vector<AssimpNodeData> children;
+	glm::mat4 transformation;
+	std::string name;
+	std::vector<AssimpNodeData> children;
 };
 
-// Clase que almacena la animación completa
+
 class Animation
 {
 public:
-    Animation(const std::string& animationPath, Model* model)
-    {
-        Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(animationPath, aiProcess_Triangulate);
-        assert(scene && scene->mRootNode);
+	float m_Duration;
+	float m_TicksPerSecond;
+	std::vector<Bone> m_Bones; // Contiene todos los nodos animados (huesos y no-huesos)
+	AssimpNodeData m_RootNode;
+	std::map<string, BoneInfo> m_BoneInfoMap; // Copia del mapa del modelo
 
-        // Tomamos la primera animación
-        auto animation = scene->mAnimations[0];
-        m_Duration = animation->mDuration;
-        m_TicksPerSecond = animation->mTicksPerSecond;
+	Animation(const std::string& animationPath, Model* model)
+	{
+		Assimp::Importer importer;
+		const aiScene* scene = importer.ReadFile(animationPath, aiProcess_Triangulate | aiProcess_FlipUVs);
+		if (!scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)
+		{
+			cout << "ERROR::ASSIMP::" << importer.GetErrorString() << endl;
+			return;
+		}
 
-        // Cargar la jerarquía de nodos
-        ReadHierarchyData(m_RootNode, scene->mRootNode);
+		if (scene->mNumAnimations == 0)
+		{
+			cout << "ERROR::ASSIMP:: No animations found in file: " << animationPath << endl;
+			return;
+		}
 
-        // Cargar los huesos
-        ReadMissingBones(animation, *model);
-    }
+		// Usamos solo la primera animación
+		aiAnimation* animation = scene->mAnimations[0];
+		m_Duration = animation->mDuration;
+		m_TicksPerSecond = (animation->mTicksPerSecond != 0) ? animation->mTicksPerSecond : 25.0f;
 
-    float GetTicksPerSecond() { return m_TicksPerSecond; }
-    float GetDuration() { return m_Duration; }
-    const AssimpNodeData& GetRootNode() { return m_RootNode; }
+		// Almacena el mapa de BoneInfo del modelo (que contiene las offset matrices)
+		// y la jerarquía de nodos estática
+		m_BoneInfoMap = model->GetBoneInfoMap();
+		ReadHierarchyData(m_RootNode, scene->mRootNode);
 
-    // Busca un hueso por nombre
-    Bone* FindBone(const std::string& name)
-    {
-        auto iter = std::find_if(m_Bones.begin(), m_Bones.end(),
-            [&](const Bone& bone) { return bone.GetBoneName() == name; }
-        );
-        if (iter == m_Bones.end()) return nullptr;
-        else return &(*iter);
-    }
+		// Lee todos los canales de animación
+		ReadMissingBones(animation, *model);
 
-    std::map<std::string, BoneInfo> GetBoneInfoMap() { return m_BoneInfoMap; }
+		std::cout << "[DEBUG] Nodos animados encontrados: " << m_Bones.size() << std::endl;
+		for (const auto& bone : m_Bones) {
+			std::cout << " > " << bone.m_Name << std::endl;
+		}
+		std::cout << "[DEBUG] Jerarquia de Nodos Raiz:" << std::endl;
+		std::function<void(const AssimpNodeData&, int)> printNode;
+		printNode = [&](const AssimpNodeData& node, int depth) {
+			for (int i = 0; i < depth; ++i) std::cout << "  ";
+			std::cout << "- " << node.name << std::endl;
+			for (const auto& child : node.children) {
+				printNode(child, depth + 1);
+			}
+			};
+		printNode(m_RootNode, 0);
+	}
 
+	~Animation() {}
+
+	Bone* FindBone(const std::string& name)
+	{
+		for (int i = 0; i < m_Bones.size(); ++i)
+			if (m_Bones[i].m_Name == name)
+				return &m_Bones[i];
+		return nullptr;
+	}
 
 private:
-    void ReadMissingBones(const aiAnimation* animation, Model& model)
-    {
-        int size = animation->mNumChannels;
-        auto& boneInfoMap = model.m_BoneInfoMap;
-        int& boneCount = model.m_BoneCounter;   
+	// Lee todos los canales de animación (aiNodeAnim)
+	void ReadMissingBones(aiAnimation* animation, Model& model)
+	{
+		int size = animation->mNumChannels;
 
-        for (int i = 0; i < size; i++)
-        {
-            auto channel = animation->mChannels[i];
-            std::string boneName = channel->mNodeName.C_Str();
+		// Almacena el mapa de BoneInfo del modelo (que contiene las offset matrices)
+		// m_BoneInfoMap = model.GetBoneInfoMap();
 
-            if (boneInfoMap.find(boneName) == boneInfoMap.end())
-            {
-                boneInfoMap[boneName].id = boneCount;
-                boneCount++;
-            }
-            m_Bones.push_back(Bone(boneName, boneInfoMap[boneName].id, channel));
-        }
-        m_BoneInfoMap = boneInfoMap;
-    }
+		for (int i = 0; i < size; i++)
+		{
+			aiNodeAnim* channel = animation->mChannels[i];
+			std::string nodeName = channel->mNodeName.data;
 
-    void ReadHierarchyData(AssimpNodeData& dest, const aiNode* src)
-    {
-        assert(src);
-        dest.name = src->mName.C_Str();
-        dest.transformation = AssimpToGLMmat4(src->mTransformation);
-        dest.childrenCount = src->mNumChildren;
+			m_Bones.push_back(Bone(nodeName, channel));
+		}
+	}
 
-        for (int i = 0; i < src->mNumChildren; i++)
-        {
-            AssimpNodeData newData;
-            ReadHierarchyData(newData, src->mChildren[i]);
-            dest.children.push_back(newData);
-        }
-    }
+	// Copia recursivamente la jerarquía de nodos de Assimp
+	void ReadHierarchyData(AssimpNodeData& dest, const aiNode* src)
+	{
+		dest.name = src->mName.data;
+		dest.transformation = AssimpToGLMmat4(src->mTransformation); // Transformación estática (bind pose)
 
-    float m_Duration;
-    int m_TicksPerSecond;
-    std::vector<Bone> m_Bones;
-    AssimpNodeData m_RootNode;
-    std::map<std::string, BoneInfo> m_BoneInfoMap;
+		dest.children.resize(src->mNumChildren);
+		for (int i = 0; i < src->mNumChildren; i++)
+		{
+			ReadHierarchyData(dest.children[i], src->mChildren[i]);
+		}
+	}
 };

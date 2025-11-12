@@ -1,4 +1,4 @@
-# Blender 4.5.3 LTS MTL File: 'galeria.blend'
+# Blender 4.5.3 LTS MTL File: 'None'
 # www.blender.org
 
 newmtl Bar_Stool_002
@@ -12,16 +12,6 @@ map_Kd Bar_Stool_001_Bar_Stool_002_BaseColor.png
 map_Ns Bar_Stool_001_Bar_Stool_002_Roughness.png
 map_refl Bar_Stool_001_Bar_Stool_002_Metallic.png
 map_Bump -bm 1.000000 Bar_Stool_001_Bar_Stool_002_Normal.png
-
-newmtl Material
-Ns 250.000000
-Ka 1.000000 1.000000 1.000000
-Ke 0.000000 0.000000 0.000000
-Ni 1.500000
-d 1.000000
-illum 2
-map_Kd Wall_Paint_qj2luvs0_1K_BaseColor.jpg
-map_Ks Wall_Paint_qj2luvs0_1K_Specular.jpg
 
 newmtl Material.001
 Ns 250.000000
@@ -83,6 +73,16 @@ d 1.000000
 illum 2
 map_Kd walk.png
 
+newmtl Material.007
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd Wall_Paint_qj2luvs0_1K_BaseColor.jpg
+map_Ks Wall_Paint_qj2luvs0_1K_Specular.jpg
+
 newmtl Material.008
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
@@ -132,16 +132,6 @@ d 1.000000
 illum 2
 map_Kd Smooth_Precast_Concrete_sekjcawb_1K_BaseColor.jpg
 map_Ks Smooth_Precast_Concrete_sekjcawb_1K_Specular.jpg
-
-newmtl Material.015
-Ns 250.000000
-Ka 1.000000 1.000000 1.000000
-Ks 0.500000 0.500000 0.500000
-Ke 0.000000 0.000000 0.000000
-Ni 1.500000
-d 1.000000
-illum 2
-map_Kd walk.png
 
 newmtl Material.016
 Ns 250.000000
@@ -342,16 +332,6 @@ Ni 1.500000
 d 1.000000
 illum 2
 map_Kd hojasArbol.png
-
-newmtl Material.046
-Ns 250.000000
-Ka 1.000000 1.000000 1.000000
-Ks 0.500000 0.500000 0.500000
-Ke 0.000000 0.000000 0.000000
-Ni 1.500000
-d 1.000000
-illum 2
-map_Kd arboldos.png
 
 newmtl Material.047
 Ka 1.000000 1.000000 1.000000

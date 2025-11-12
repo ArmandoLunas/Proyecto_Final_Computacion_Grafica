@@ -16,25 +16,15 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include "Mesh.h"
+#include "Mesh.h"  
 #include "Shader.h"
-#include "bone.h" 
 
 using namespace std;
 
+glm::mat4 AssimpToGLMmat4(const aiMatrix4x4& from);
+
 GLint TextureFromFile(const char* path, string directory);
 
-
-// --- Función Helper para convertir matrices de Assimp a GLM ---
-static glm::mat4 AssimpToGLMmat4(const aiMatrix4x4& from)
-{
-	glm::mat4 to;
-	to[0][0] = from.a1; to[1][0] = from.a2; to[2][0] = from.a3; to[3][0] = from.a4;
-	to[0][1] = from.b1; to[1][1] = from.b2; to[2][1] = from.b3; to[3][1] = from.b4;
-	to[0][2] = from.c1; to[1][2] = from.c2; to[2][2] = from.c3; to[3][2] = from.c4;
-	to[0][3] = from.d1; to[1][3] = from.d2; to[2][3] = from.d3; to[3][3] = from.d4;
-	return to;
-}
 
 class Model
 {
@@ -45,7 +35,7 @@ public:
 	string directory;
 
 	// --- Datos para Animación Esquelética ---
-	map<string, BoneInfo> m_BoneInfoMap; // Mapa de información de huesos
+	map<string, BoneInfo> m_BoneInfoMap;
 	int m_BoneCounter = 0;               // Contador de huesos
 
 	Model(GLchar* path)
@@ -60,6 +50,10 @@ public:
 			this->meshes[i].Draw(shader);
 		}
 	}
+
+	// --- Getters públicos para el mapa de huesos ---
+	const map<string, BoneInfo>& GetBoneInfoMap() const { return m_BoneInfoMap; }
+	int& GetBoneCount() { return m_BoneCounter; }
 
 private:
 
@@ -154,7 +148,7 @@ private:
 				int vertexId = weights[weightIndex].mVertexId;
 				float weight = weights[weightIndex].mWeight;
 				assert(vertexId < vertices.size());
-				
+
 				SetVertexBoneData(vertices[vertexId], boneID, weight);
 			}
 		}
@@ -177,7 +171,7 @@ private:
 				vertex.m_BoneIDs[j] = -1;
 				vertex.m_Weights[j] = 0.0f;
 			}
-			
+
 			// Posición
 			glm::vec3 vector;
 			vector.x = mesh->mVertices[i].x;
@@ -268,7 +262,7 @@ private:
 				Texture texture;
 				texture.id = TextureFromFile(str.C_Str(), this->directory);
 				texture.type = typeName;
-				texture.path = str;
+				texture.path = str; // Usamos el aiString original
 				textures.push_back(texture);
 
 				this->textures_loaded.push_back(texture); // Añadir a la lista de cargadas
@@ -283,7 +277,7 @@ GLint TextureFromFile(const char* path, string directory)
 {
 	//Generar ID de textura y cargar datos
 	string filename = string(path);
-	std::replace(filename.begin(), filename.end(), '\\', '/');
+	std::replace(filename.begin(), filename.end(), '\\', '/'); // <-- Normalizar ruta
 	filename = directory + '/' + filename;
 
 	std::cout << "========================================" << std::endl;
@@ -316,7 +310,10 @@ GLint TextureFromFile(const char* path, string directory)
 
 	// Asignar textura al ID
 	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	// Corregir alineación de OpenGL para texturas con ancho no-múltiplo de 4
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -327,6 +324,10 @@ GLint TextureFromFile(const char* path, string directory)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	glBindTexture(GL_TEXTURE_2D, 0); // Desenlazar
+
+	// Regresar alineación a su default
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
 	SOIL_free_image_data(image); // Liberar memoria
 
 	return textureID;
