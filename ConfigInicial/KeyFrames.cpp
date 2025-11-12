@@ -1,6 +1,6 @@
-// Estudiante: Armando Luna Juárez 319056323
-// Práctica 12: Animación por KeyFrames
-// Fecha de entrega: 06/11/2025
+// Estudiantes: 319056323, 319302149, 422022569
+// Proyecto Final
+// Fecha de entrega: 12/11/2025
 #include <iostream>
 #include <cmath>
 
@@ -393,6 +393,10 @@ int main()
 	// Shader para modelos con huesos
 	Shader shaderEsqueletico("Shader/lighting_skeletical.vs", "Shader/lighting.frag");
 	
+	Model vaca((char*)"Models/vaca.fbx");
+	Animation vacaAnimation((char*)"Models/vaca.fbx", &vaca);
+	Animator vacaAnimator(&vacaAnimation);
+
 	Model humanModel((char*)"Models/humano-animation.fbx");
 	Animation humanAnimation((char*)"Models/humano-animation.fbx", &humanModel);
 	Animator humanAnimator(&humanAnimation);
@@ -406,7 +410,7 @@ int main()
 	Model B_RightLeg((char*)"Models/B_RightLegDog.obj");
 	Model B_LeftLeg((char*)"Models/B_LeftLegDog.obj");
 	Model Piso((char*)"Models/galeria.obj");
-	Model Ball((char*)"Models/ball.obj");
+	Model Ball((char*)"Models/sky.obj");
 
 	
 
@@ -473,6 +477,7 @@ int main()
 		DoMovement();
 		Animation_dog();
 
+		vacaAnimator.UpdateAnimation(deltaTime);
 		humanAnimator.UpdateAnimation(deltaTime);
 
 		// Clear the colorbuffer
@@ -658,6 +663,20 @@ int main()
 		glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
+		auto boneMatrix = vacaAnimator.GetFinalBoneMatrices();
+		for (int i = 0; i < boneMatrix.size(); ++i)
+		{
+			string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
+			glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(boneMatrix[i]));
+		}
+
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(8.0f, 1.0f, 3.42f));
+		model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(0.01));
+		glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		vaca.Draw(shaderEsqueletico);
+
 		auto boneMatrices = humanAnimator.GetFinalBoneMatrices();
 		for (int i = 0; i < boneMatrices.size(); ++i)
 		{
@@ -666,7 +685,7 @@ int main()
 		}
 
 		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
 		model = glm::scale(model, glm::vec3(0.01));
 		glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		humanModel.Draw(shaderEsqueletico);
