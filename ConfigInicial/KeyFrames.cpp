@@ -26,6 +26,8 @@
 #include "Shader.h"
 #include "Camera.h"
 #include "Model.h"
+#include "Animation.h"
+#include "Animator.h"
 
 #include <fstream>
 #include <sstream>
@@ -37,7 +39,7 @@ const char* KEYFRAMES_PATH = "dog_keyframes.txt";
 void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode);
 void MouseCallback(GLFWwindow *window, double xPos, double yPos);
 void DoMovement();
-void Animation();
+void Animation_dog();
 
 // Window dimensions
 const GLuint WIDTH = 800, HEIGHT = 600;
@@ -388,7 +390,13 @@ int main()
 	Shader lightingShader("Shader/lighting.vs", "Shader/lighting.frag");
 	Shader lampShader("Shader/lamp.vs", "Shader/lamp.frag");
 	
+	// Shader para modelos con huesos
+	Shader shaderEsqueletico("Shader/lighting_skeletical.vs", "Shader/lighting.frag");
 	
+	Model humanModel((char*)"Models/humano-animation.fbx");
+	Animation humanAnimation((char*)"Models/humano-animation.fbx", &humanModel);
+	Animator humanAnimator(&humanAnimation);
+
 	//models
 	Model DogBody((char*)"Models/DogBody.obj");
 	Model HeadDog((char*)"Models/HeadDog.obj");
@@ -399,6 +407,8 @@ int main()
 	Model B_LeftLeg((char*)"Models/B_LeftLegDog.obj");
 	Model Piso((char*)"Models/galeria.obj");
 	Model Ball((char*)"Models/ball.obj");
+
+	
 
 
 	//KeyFrames
@@ -456,10 +466,14 @@ int main()
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
+		
+
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
 		glfwPollEvents();
 		DoMovement();
-		Animation();
+		Animation_dog();
+
+		humanAnimator.UpdateAnimation(deltaTime);
 
 		// Clear the colorbuffer
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -535,7 +549,6 @@ int main()
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-
 		glm::mat4 model(1);
 
 	
@@ -603,6 +616,61 @@ int main()
 	    Ball.Draw(lightingShader); 
 		glDisable(GL_BLEND);  //Desactiva el canal alfa 
 		glBindVertexArray(0);
+
+		shaderEsqueletico.Use();
+
+		// viewPos (Posición de la cámara)
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "viewPos"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
+		
+		// Luz Direccional
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.ambient"),0.6f,0.6f,0.6f);
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.diffuse"), 0.6f, 0.6f, 0.6f);
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.specular"),0.3f, 0.3f, 0.3f);
+
+		// Luz Puntual (Point light 1)
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].position"), pointLightPositions[0].x, pointLightPositions[0].y, pointLightPositions[0].z);
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].ambient"), lightColor.x,lightColor.y, lightColor.z);
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].diffuse"), lightColor.x,lightColor.y,lightColor.z);
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].specular"), 1.0f, 0.2f, 0.2f);
+		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].constant"), 1.0f);
+		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].linear"), 0.045f);
+		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].quadratic"),0.075f);
+
+		// Linterna (SpotLight)
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.position"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.direction"), camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.ambient"), 0.2f, 0.2f, 0.8f);
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.diffuse"), 0.2f, 0.2f, 0.8f);
+		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.specular"), 0.0f, 0.0f, 0.0f);
+		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.constant"), 1.0f);
+		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.linear"), 0.3f);
+		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.quadratic"), 0.7f);
+		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.cutOff"), glm::cos(glm::radians(12.0f)));
+		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.outerCutOff"), glm::cos(glm::radians(18.0f)));
+		
+		// Propiedades del Material
+		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "material.shininess"), 5.0f);
+		glUniform1i(glGetUniformLocation(shaderEsqueletico.Program, "diffuse"), 0);
+		
+		
+		glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+		auto boneMatrices = humanAnimator.GetFinalBoneMatrices();
+		for (int i = 0; i < boneMatrices.size(); ++i)
+		{
+			string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
+
+			// DEBE SER shaderEsqueletico.Program
+			glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(boneMatrices[i]));
+		}
+
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(0.01));
+		glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		humanModel.Draw(shaderEsqueletico);
 	
 
 		// Also draw the lamp object, again binding the appropriate shader
@@ -863,7 +931,7 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode
 	
 	
 }
-void Animation() {
+void Animation_dog() {
 
 	if (play)
 	{
