@@ -1,0 +1,622 @@
+{
+  "assetCategories": {
+    "surface": {
+      "wood": {
+        "plank": {}
+      }
+    }
+  },
+  "averageColor": "#000000",
+  "categories": [
+    "surface",
+    "wood",
+    "plank"
+  ],
+  "comp_version": 1,
+  "description": "",
+  "displacementBias": 0.917099,
+  "displacementCalibrationAccuracy": 0.98772,
+  "displacementScale": 1.371625,
+  "environment": {
+    "biome": "rural",
+    "region": "Asia"
+  },
+  "highest_available_res": 8192,
+  "id": "whnfbg3",
+  "json": {
+    "contentLength": 12898,
+    "uri": "whnfbg3.json"
+  },
+  "maps": [
+    {
+      "averageColor": "#F5F5F5",
+      "bitDepth": 32,
+      "colorSpace": "sRGB",
+      "contentLength": 178503695,
+      "maxIntensity": 255,
+      "mimeType": "image/x-exr",
+      "minIntensity": 205,
+      "name": "AO",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "ao",
+      "uri": "whnfbg3_8K_AO.exr"
+    },
+    {
+      "averageColor": "#F5F5F5",
+      "bitDepth": 8,
+      "colorSpace": "sRGB",
+      "contentLength": 19389735,
+      "maxIntensity": 255,
+      "mimeType": "image/jpeg",
+      "minIntensity": 205,
+      "name": "AO",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "ao",
+      "uri": "whnfbg3_8K_AO.jpg"
+    },
+    {
+      "averageColor": "#5F402A",
+      "bitDepth": 16,
+      "colorSpace": "sRGB",
+      "contentLength": 85035650,
+      "maxIntensity": 105,
+      "mimeType": "image/x-exr",
+      "minIntensity": 41,
+      "name": "Basecolor",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "basecolor",
+      "uri": "whnfbg3_8K_Basecolor.exr"
+    },
+    {
+      "averageColor": "#5F402A",
+      "bitDepth": 8,
+      "colorSpace": "sRGB",
+      "contentLength": 29318319,
+      "maxIntensity": 105,
+      "mimeType": "image/jpeg",
+      "minIntensity": 41,
+      "name": "Basecolor",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "basecolor",
+      "uri": "whnfbg3_8K_Basecolor.jpg"
+    },
+    {
+      "averageColor": "#808080",
+      "bitDepth": 32,
+      "colorSpace": "Linear",
+      "contentLength": 190397794,
+      "maxIntensity": 255,
+      "mimeType": "image/x-exr",
+      "minIntensity": 0,
+      "name": "Bump",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "bump",
+      "uri": "whnfbg3_8K_Bump.exr"
+    },
+    {
+      "averageColor": "#808080",
+      "bitDepth": 8,
+      "colorSpace": "Linear",
+      "contentLength": 11584875,
+      "maxIntensity": 255,
+      "mimeType": "image/jpeg",
+      "minIntensity": 0,
+      "name": "Bump",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "bump",
+      "uri": "whnfbg3_8K_Bump.jpg"
+    },
+    {
+      "averageColor": "#FFFFFF",
+      "bitDepth": 32,
+      "colorSpace": "sRGB",
+      "contentLength": 206145129,
+      "maxIntensity": 255,
+      "mimeType": "image/x-exr",
+      "minIntensity": 255,
+      "name": "Cavity",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "cavity",
+      "uri": "whnfbg3_8K_Cavity.exr"
+    },
+    {
+      "averageColor": "#FFFFFF",
+      "bitDepth": 8,
+      "colorSpace": "sRGB",
+      "contentLength": 41883477,
+      "maxIntensity": 255,
+      "mimeType": "image/jpeg",
+      "minIntensity": 255,
+      "name": "Cavity",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "cavity",
+      "uri": "whnfbg3_8K_Cavity.jpg"
+    },
+    {
+      "averageColor": "#818181",
+      "bitDepth": 32,
+      "colorSpace": "Linear",
+      "contentLength": 261777642,
+      "maxIntensity": 133,
+      "mimeType": "image/x-exr",
+      "minIntensity": 110,
+      "name": "Displacement",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "displacement",
+      "uri": "whnfbg3_8K_Displacement.exr"
+    },
+    {
+      "averageColor": "#818181",
+      "bitDepth": 8,
+      "colorSpace": "Linear",
+      "contentLength": 4621536,
+      "maxIntensity": 133,
+      "mimeType": "image/jpeg",
+      "minIntensity": 110,
+      "name": "Displacement",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "displacement",
+      "uri": "whnfbg3_8K_Displacement.jpg"
+    },
+    {
+      "averageColor": "#7B7B7B",
+      "bitDepth": 32,
+      "colorSpace": "Linear",
+      "contentLength": 97682637,
+      "maxIntensity": 151,
+      "mimeType": "image/x-exr",
+      "minIntensity": 49,
+      "name": "Gloss",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "gloss",
+      "uri": "whnfbg3_8K_Gloss.exr"
+    },
+    {
+      "averageColor": "#7B7B7B",
+      "bitDepth": 8,
+      "colorSpace": "Linear",
+      "contentLength": 23186654,
+      "maxIntensity": 151,
+      "mimeType": "image/jpeg",
+      "minIntensity": 49,
+      "name": "Gloss",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "gloss",
+      "uri": "whnfbg3_8K_Gloss.jpg"
+    },
+    {
+      "averageColor": "#8182FC",
+      "bitDepth": 16,
+      "colorSpace": "Linear",
+      "contentLength": 102554724,
+      "maxIntensity": 164,
+      "mimeType": "image/x-exr",
+      "minIntensity": 118,
+      "name": "Normal",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "normal",
+      "uri": "whnfbg3_8K_Normal.exr"
+    },
+    {
+      "averageColor": "#8182FC",
+      "bitDepth": 8,
+      "colorSpace": "Linear",
+      "contentLength": 53405244,
+      "maxIntensity": 164,
+      "mimeType": "image/jpeg",
+      "minIntensity": 118,
+      "name": "Normal",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "normal",
+      "uri": "whnfbg3_8K_Normal.jpg"
+    },
+    {
+      "averageColor": "#848484",
+      "bitDepth": 32,
+      "colorSpace": "Linear",
+      "contentLength": 88320599,
+      "maxIntensity": 206,
+      "mimeType": "image/x-exr",
+      "minIntensity": 104,
+      "name": "Roughness",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "roughness",
+      "uri": "whnfbg3_8K_Roughness.exr"
+    },
+    {
+      "averageColor": "#848484",
+      "bitDepth": 8,
+      "colorSpace": "Linear",
+      "contentLength": 23050291,
+      "maxIntensity": 206,
+      "mimeType": "image/jpeg",
+      "minIntensity": 104,
+      "name": "Roughness",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "roughness",
+      "uri": "whnfbg3_8K_Roughness.jpg"
+    },
+    {
+      "averageColor": "#383838",
+      "bitDepth": 16,
+      "colorSpace": "sRGB",
+      "contentLength": 222914819,
+      "maxIntensity": 56,
+      "mimeType": "image/x-exr",
+      "minIntensity": 56,
+      "name": "Specular",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "specular",
+      "uri": "whnfbg3_8K_Specular.exr"
+    },
+    {
+      "averageColor": "#383838",
+      "bitDepth": 8,
+      "colorSpace": "sRGB",
+      "contentLength": 23705673,
+      "maxIntensity": 56,
+      "mimeType": "image/jpeg",
+      "minIntensity": 56,
+      "name": "Specular",
+      "physicalSize": "2x2",
+      "resolution": "8192x8192",
+      "type": "specular",
+      "uri": "whnfbg3_8K_Specular.jpg"
+    }
+  ],
+  "meta": [
+    {
+      "key": "scanArea",
+      "name": "Scan Area",
+      "value": "2x2 m"
+    },
+    {
+      "key": "height",
+      "name": "Height",
+      "value": "0.018 m"
+    },
+    {
+      "key": "tileable",
+      "name": "Tileable",
+      "value": true
+    },
+    {
+      "key": "tiling_directions",
+      "name": "Tiling Directions",
+      "value": [
+        "x",
+        "y"
+      ]
+    },
+    {
+      "key": "texelDensity",
+      "name": "Texel Density",
+      "value": "4096 px/m"
+    },
+    {
+      "key": "calibration",
+      "name": "Calibration",
+      "value": "GretagMacbeth ColorChecker Color Rendition Chart"
+    },
+    {
+      "key": "scanner",
+      "name": "Scanner",
+      "value": "MKX"
+    }
+  ],
+  "models": [],
+  "name": "Worn Wooden Planks",
+  "pack": {
+    "_id": "wooden-planks",
+    "name": "Wooden Planks"
+  },
+  "physicalSize": null,
+  "points": 2,
+  "previews": {
+    "images": [
+      {
+        "contentLength": 270009,
+        "resolution": "360x360",
+        "tags": [
+          "thumb"
+        ],
+        "uri": "whnfbg3_Grid_360.png"
+      },
+      {
+        "contentLength": 365661,
+        "resolution": "420x420",
+        "tags": [
+          "thumb"
+        ],
+        "uri": "whnfbg3_Grid_420.png"
+      },
+      {
+        "contentLength": 1081004,
+        "resolution": "720x720",
+        "tags": [
+          "thumb",
+          "retina"
+        ],
+        "uri": "whnfbg3_Grid_720.png"
+      },
+      {
+        "contentLength": 1474470,
+        "resolution": "840x840",
+        "tags": [
+          "thumb",
+          "retina"
+        ],
+        "uri": "whnfbg3_Grid_840.png"
+      },
+      {
+        "contentLength": 2530076,
+        "resolution": "1440x768",
+        "tags": [
+          "preview",
+          "clay"
+        ],
+        "uri": "whnfbg3_PopupClay_1440.png"
+      },
+      {
+        "contentLength": 4789425,
+        "resolution": "1920x1080",
+        "tags": [
+          "preview",
+          "clay"
+        ],
+        "uri": "whnfbg3_PopupClay_1920.png"
+      },
+      {
+        "contentLength": 10392652,
+        "resolution": "2880x1536",
+        "tags": [
+          "preview",
+          "clay",
+          "retina"
+        ],
+        "uri": "whnfbg3_PopupClay_2880.png"
+      },
+      {
+        "contentLength": 20186033,
+        "resolution": "3840x2160",
+        "tags": [
+          "preview",
+          "clay",
+          "retina"
+        ],
+        "uri": "whnfbg3_PopupClay_3840.png"
+      },
+      {
+        "contentLength": 3223377,
+        "resolution": "1440x768",
+        "tags": [
+          "preview",
+          "tiled"
+        ],
+        "uri": "whnfbg3_PopupTiled_1440.png"
+      },
+      {
+        "contentLength": 6026271,
+        "resolution": "1920x1080",
+        "tags": [
+          "preview",
+          "tiled"
+        ],
+        "uri": "whnfbg3_PopupTiled_1920.png"
+      },
+      {
+        "contentLength": 12873663,
+        "resolution": "2880x1536",
+        "tags": [
+          "preview",
+          "tiled",
+          "retina"
+        ],
+        "uri": "whnfbg3_PopupTiled_2880.png"
+      },
+      {
+        "contentLength": 24671391,
+        "resolution": "3840x2160",
+        "tags": [
+          "preview",
+          "tiled",
+          "retina"
+        ],
+        "uri": "whnfbg3_PopupTiled_3840.png"
+      },
+      {
+        "contentLength": 3244081,
+        "resolution": "1440x768",
+        "tags": [
+          "preview"
+        ],
+        "uri": "whnfbg3_Popup_1440.png"
+      },
+      {
+        "contentLength": 6090118,
+        "resolution": "1920x1080",
+        "tags": [
+          "preview"
+        ],
+        "uri": "whnfbg3_Popup_1920.png"
+      },
+      {
+        "contentLength": 13035334,
+        "resolution": "2880x1536",
+        "tags": [
+          "preview",
+          "retina"
+        ],
+        "uri": "whnfbg3_Popup_2880.png"
+      },
+      {
+        "contentLength": 25067384,
+        "resolution": "3840x2160",
+        "tags": [
+          "preview",
+          "retina"
+        ],
+        "uri": "whnfbg3_Popup_3840.png"
+      }
+    ],
+    "relativeSize": "1x1",
+    "scaleReferences": []
+  },
+  "process_date": "2024-04-16 19:56:03",
+  "properties": [],
+  "referencePreviews": {
+    "maps": [],
+    "models": []
+  },
+  "references": [],
+  "revised": false,
+  "revision": 0,
+  "semanticTags": {
+    "architectural_style": {},
+    "asset_type": "surface",
+    "color": [
+      "Brown",
+      "Gray",
+      "Orange"
+    ],
+    "contains": [
+      "Grouts",
+      "Dirt",
+      "floorboard",
+      "planks",
+      "wood"
+    ],
+    "country": "Japan",
+    "descriptive": [
+      "Rough",
+      "Dirty",
+      "stained",
+      "worn",
+      "polished",
+      "old"
+    ],
+    "environment": [
+      "rural"
+    ],
+    "industry": [
+      "archviz",
+      "games",
+      "VFX"
+    ],
+    "interior_exterior": [
+      "exterior"
+    ],
+    "locations": {
+      "Asia": {
+        "Japan": {}
+      }
+    },
+    "maxSize": 2,
+    "minSize": 2,
+    "name": "Worn Wooden Planks",
+    "orientation": [
+      "floor"
+    ],
+    "region": "Asia",
+    "state": [
+      "old"
+    ],
+    "subject_matter": "manmade",
+    "theme": [
+      "deck",
+      "flooring",
+      "cabin",
+      "homes",
+      "exteriors",
+      "floors",
+      "cottages",
+      "rural",
+      "farmhouses",
+      "archviz",
+      "houses"
+    ]
+  },
+  "tags": [
+    "brown",
+    "gray",
+    "orange",
+    "deck",
+    "flooring",
+    "cabin",
+    "homes",
+    "exteriors",
+    "floors",
+    "cottages",
+    "rural",
+    "farmhouses",
+    "archviz",
+    "houses",
+    "outdoors",
+    "nails",
+    "grouts",
+    "dirt",
+    "dust",
+    "floorboard",
+    "planks",
+    "wood",
+    "rough",
+    "dirty",
+    "stained",
+    "worn",
+    "weathered"
+  ],
+  "texelDensity": 4096,
+  "texture_type": "basic",
+  "ue_plugin_archives": [
+    {
+      "contentLength": 236253927,
+      "gltfVersion": "2.0",
+      "tier": 0,
+      "type": "gltf",
+      "uri": "ue_plugin_archives/tier_0/whnfbg3_tier_0.zip",
+      "version": 1
+    },
+    {
+      "contentLength": 81972850,
+      "gltfVersion": "2.0",
+      "tier": 1,
+      "type": "gltf",
+      "uri": "ue_plugin_archives/tier_1/whnfbg3_tier_1.zip",
+      "version": 1
+    },
+    {
+      "contentLength": 20742122,
+      "gltfVersion": "2.0",
+      "tier": 2,
+      "type": "gltf",
+      "uri": "ue_plugin_archives/tier_2/whnfbg3_tier_2.zip",
+      "version": 1
+    },
+    {
+      "contentLength": 1668842,
+      "gltfVersion": "2.0",
+      "tier": 3,
+      "type": "gltf",
+      "uri": "ue_plugin_archives/tier_3/whnfbg3_tier_3.zip",
+      "version": 1
+    }
+  ],
+  "version": 2
+}

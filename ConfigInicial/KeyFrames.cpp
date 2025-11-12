@@ -67,13 +67,13 @@ int FindNearestPainting(const glm::vec3& eye, float radius) {
 void SetupPaintings() {
     gPaints.clear();
     gPaints.push_back({ glm::vec3(0.337259f, 2.33063f,  -4.45026f), "Obra 1: Night Ride", "Mariana Pandele", 2022 ,"Se observan las gotas, como si la imagen fuera en un cristal." });
-    gPaints.push_back({ glm::vec3(-5.79022f,  2.09737f,  -8.17831f), "Obra 2: Fishing", "Zac Retz", 2025,"Pintura digital basada en el río Ganges." });
-    gPaints.push_back({ glm::vec3(6.55929f,  2.09173f,  -8.17831f), "Obra 3: Sailing", "Anónimo", 2024,"Pintura acrílica, mostrando un barco navegando ante la salida del sol. (O caída, según se mire.)" });
-    gPaints.push_back({ glm::vec3(4.62123f,  2.10394f, -11.08750f), "Obra 4: ", "Anónimo", 2022,"" });
-    gPaints.push_back({ glm::vec3(4.34043f,  1.63884f, -10.72130f), "Obra 5", "Anónimo", 2024 ,"" });
-    gPaints.push_back({ glm::vec3(-5.21808f,  1.80790f, -10.93570f), "Obra 6: El Grito", "Edvard Munch", 1893 ,"Figura andrógina en un estado de angustia existencial" });
+    gPaints.push_back({ glm::vec3(-5.79022f,  2.09737f,  -8.17831f), "Obra 2: Fishing", "Zac Retz", 2025,u8"Pintura digital basada en el río Ganges." });
+    gPaints.push_back({ glm::vec3(6.55929f,  2.09173f,  -8.17831f), "Obra 3: Sailing", u8"Anónimo", 2024,u8"Pintura acrílica, mostrando un barco navegando ante la salida del sol. (O caída, según se mire.)" });
+    gPaints.push_back({ glm::vec3(4.62123f,  2.10394f, -11.08750f), "Obra 4: ", u8"Anónimo", 2022,"" });
+    gPaints.push_back({ glm::vec3(4.34043f,  1.63884f, -10.72130f), "Obra 5",u8"Anónimo", 2024 ,"" });
+    gPaints.push_back({ glm::vec3(-5.21808f,  1.80790f, -10.93570f), "Obra 6: El Grito", "Edvard Munch", 1893 ,u8"Figura andrógina en un estado de angustia existencial" });
     gPaints.push_back({ glm::vec3(-0.313893f, 2.48509f,  -8.50147f), "Obra 7 : Mirada", "Armando Luna", 2025 ,"Pintura digital hecha por 319056323." });
-    gPaints.push_back({ glm::vec3(6.06299f,  2.50170f, -10.93570f), "Obra 8: Noche Apagada", "Anónimo", 2023,"Denota la parte central, pues mientras más se sube, menos luz hay." });
+    gPaints.push_back({ glm::vec3(6.06299f,  2.50170f, -10.93570f), "Obra 8: Noche Apagada", u8"Anónimo", 2023,"Denota la parte central, pues mientras más se sube, menos luz hay." });
 }
 
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -684,7 +684,7 @@ int main() {
                 ImGui::Separator();
                 ImGui::Text("Titulo: %s", P.titulo.c_str());
                 ImGui::Text("Autor : %s", P.autor.c_str());
-                ImGui::Text("Año  : %d", P.anio); // <-- corregido
+                ImGui::Text(u8"Año  : %d", P.anio); // <-- corregido
                 ImGui::Spacing();
                 ImGui::TextWrapped("%s", P.desc.c_str());
                 ImGui::Spacing();
@@ -765,15 +765,6 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
         if (gCurrentPaint >= 0) gShowCard = !gShowCard; else gShowCard = false;
     }
 
-    // Guardar / Cargar animación rápido
-    if (key == GLFW_KEY_F5 && action == GLFW_PRESS) {
-        if (SaveAnimation(ANIM_FILE)) std::cout << "Animación guardada.\n";
-        else std::cout << "No se pudo guardar animación.\n";
-    }
-    if (key == GLFW_KEY_F6 && action == GLFW_PRESS) {
-        if (LoadAnimation(ANIM_FILE)) std::cout << "Animación cargada.\n";
-        else std::cout << "No se pudo cargar animación.\n";
-    }
 }
 
 void Animation_esculturas() {
