@@ -1,8 +1,15 @@
 // Estudiantes: 319056323, 319302149, 422022569
 // Proyecto Final
 // Fecha de entrega: 12/11/2025
+
 #include <iostream>
 #include <cmath>
+#include <fstream>
+#include <algorithm>
+#include <cstdio>
+#include <vector>
+#include <string>
+#include <cstring>
 
 // GLEW
 #include <GL/glew.h>
@@ -21,25 +28,64 @@
 //Load Models
 #include "SOIL2/SOIL2.h"
 
-
 // Other includes
 #include "Shader.h"
 #include "Camera.h"
 #include "Model.h"
+
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
 #include "Animation.h"
 #include "Animator.h"
 
-#include <fstream>
-#include <sstream>
-#include <string>
+struct Painting {
+    glm::vec3 pos;
+    std::string titulo;
+    std::string autor;
+    int anio;
+    std::string desc;
+};
 
-const char* KEYFRAMES_PATH = "dog_keyframes.txt";
+std::vector<Painting> gPaints;
+float gShowRadius = 2.0f;   // radio para considerar “cerca”
+int   gCurrentPaint = -1;   // índice de pintura cercana
+bool  gShowCard = false;    // TAB alterna si hay pintura cercana
 
-// Function prototypes
-void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode);
-void MouseCallback(GLFWwindow *window, double xPos, double yPos);
+int FindNearestPainting(const glm::vec3& eye, float radius) {
+    int best = -1;
+    float bestD2 = radius * radius;
+    for (int i = 0; i < (int)gPaints.size(); ++i) {
+        glm::vec3 v = gPaints[i].pos - eye;
+        float d2 = glm::dot(v, v);
+        if (d2 <= bestD2) { bestD2 = d2; best = i; }
+    }
+    return best;
+}
+
+void SetupPaintings() {
+    gPaints.clear();
+    gPaints.push_back({ glm::vec3(0.337259f, 2.33063f,  -4.45026f), "Obra 1", "Autor 1", 2000 ,"des" });
+    gPaints.push_back({ glm::vec3(-5.79022f,  2.09737f,  -8.17831f), "Obra 2", "Autor 2", 2001,"des" });
+    gPaints.push_back({ glm::vec3(6.55929f,  2.09173f,  -8.17831f), "Obra 3", "Autor 3", 2002,"des" });
+    gPaints.push_back({ glm::vec3(4.62123f,  2.10394f, -11.08750f), "Obra 4", "Autor 4", 2003,"des" });
+    gPaints.push_back({ glm::vec3(4.34043f,  1.63884f, -10.72130f), "Obra 5", "Autor 5", 2004 ,"des" });
+    gPaints.push_back({ glm::vec3(-5.21808f,  1.80790f, -10.93570f), "Obra 6", "Autor 6", 2005 ,"des" });
+    gPaints.push_back({ glm::vec3(-0.313893f, 2.48509f,  -8.50147f), "Obra 7 : Mirada", "Armando Luna", 2025 ,"Pintado con ..." });
+    gPaints.push_back({ glm::vec3(6.06299f,  2.50170f, -10.93570f), "Obra 8", "Autor 8", 2006,"des" });
+}
+
+void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void MouseCallback(GLFWwindow* window, double xPos, double yPos);
 void DoMovement();
-void Animation_dog();
+
+void Animation_esculturas();
+bool SaveAnimation(const char* path);
+bool LoadAnimation(const char* path);
+void saveFrame(void);
+void resetElements(void);
+void interpolation(void);
 
 // Window dimensions
 const GLuint WIDTH = 800, HEIGHT = 600;
@@ -47,962 +93,656 @@ int SCREEN_WIDTH, SCREEN_HEIGHT;
 
 // Camera
 Camera  camera(glm::vec3(0.0f, 2.0f, 3.0f));
-GLfloat lastX = WIDTH / 2.0;
-GLfloat lastY = HEIGHT / 2.0;
-bool keys[1024];
+GLfloat lastX = WIDTH / 2.0f;
+GLfloat lastY = HEIGHT / 2.0f;
+bool keys[1024]{};
 bool firstMouse = true;
 // Light attributes
 glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
-bool active;
+bool active = false;
 
 // Positions of the point lights
 glm::vec3 pointLightPositions[] = {
-	glm::vec3(0.0f,2.0f, 0.0f),
-	glm::vec3(0.0f,0.0f, 0.0f),
-	glm::vec3(0.0f,0.0f,  0.0f),
-	glm::vec3(0.0f,0.0f, 0.0f)
+    glm::vec3(0.0f,2.0f, 0.0f),
+    glm::vec3(0.0f,0.0f, 0.0f),
+    glm::vec3(0.0f,0.0f,  0.0f),
+    glm::vec3(0.0f,0.0f, 0.0f)
 };
 
 float vertices[] = {
-	 -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-		0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-		0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-		0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-	   -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-	   -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+       -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+       -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
 
-	   -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-		0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-		0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-		0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-	   -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-	   -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+       -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+        0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+       -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+       -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
 
-	   -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-	   -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-	   -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-	   -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-	   -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-	   -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+       -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+       -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+       -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+       -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+       -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
 
-		0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-		0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-		0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-		0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-		0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+        0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+        0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+        0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+        0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+        0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
 
-	   -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-		0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-		0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-		0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-	   -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-	   -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+       -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+        0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+        0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+       -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+       -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
 
-	   -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-		0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-		0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-		0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-	   -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-	   -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+       -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+        0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+       -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f
 };
 
-
 glm::vec3 Light1 = glm::vec3(0);
-//Anim
-float rotBall = 0.0f;
-float rotDog = 0.0f;
-int dogAnim = 0;
-float FLegs = 0.0f; 
-float RLegs = 0.0f;
-float legFL = 0.0f; // Pata delantera Izquierda
-float legFR = 0.0f; // Pata delantera Derecha
-float legBL = 0.0f; // Pata trasera Izquierda
-float legBR = 0.0f; // Pata trasera Derecha
-float head = 0.0f;
-float tail = 0.0f;
-float rotXDog = 0.0f;
 
+// ESTADO DE ESCULTURA 01
+float PosX = 0.0f, PosY = 0.0f, PosZ = 0.0f;
+float cue = 0.0f;
+float Pd = 0.0f;
+float Pder = 0.0f;
+float Pf = 0.0f;
+float Pi = 0.0f;
+float Pizq = 0.0f;
+float Ptobj = 0.0f;
+float rotStem = 0.0f;
 
-
-//KeyFrames
-float dogPosX , dogPosY , dogPosZ  ;
-
-#define MAX_FRAMES 9
+#define MAX_FRAMES 200
 int i_max_steps = 190;
 int i_curr_steps = 0;
-typedef struct _frame {
-	
-	float rotDog;
-	float rotDogInc;
-	float dogPosX;
-	float dogPosY;
-	float dogPosZ;
-	float incX;
-	float incY;
-	float incZ;
-	float head;
-	float headInc;
-	float legFL;    float legFLInc;
-	float legFR;    float legFRInc;
-	float legBL;    float legBLInc;
-	float legBR;    float legBRInc;
-	float tail;     float tailInc;
 
-}FRAME;
+typedef struct _frame {
+    float PosX, PosY, PosZ;  float incX, incY, incZ;
+    float cue, cueInc;
+    float Pd, PdInc;
+    float Pder, PderInc;
+    float Pf, PfInc;
+    float Pi, PiInc;
+    float Pizq, PizqInc;
+    float Ptobj, PtobjInc;
+    float rotStem, rotStemInc;
+} FRAME;
 
 FRAME KeyFrame[MAX_FRAMES];
-int FrameIndex = 0;			//introducir datos
+int FrameIndex = 0;
 bool play = false;
 int playIndex = 0;
 
-
-
-void saveFrame(void)
-{
-
-	printf("frameindex %d\n", FrameIndex);
-
-	KeyFrame[FrameIndex].dogPosX = dogPosX;
-	KeyFrame[FrameIndex].dogPosY = dogPosY;
-	KeyFrame[FrameIndex].dogPosZ = dogPosZ;
-
-	KeyFrame[FrameIndex].rotDog = rotDog;
-	KeyFrame[FrameIndex].head = head;
-
-	KeyFrame[FrameIndex].legFL = legFL;
-	KeyFrame[FrameIndex].legFR = legFR;
-	KeyFrame[FrameIndex].legBL = legBL;
-	KeyFrame[FrameIndex].legBR = legBR;
-	KeyFrame[FrameIndex].tail = tail;
-
-	FrameIndex++;
-}
-
-void resetElements(void)
-{
-	dogPosX = KeyFrame[0].dogPosX;
-	dogPosY = KeyFrame[0].dogPosY;
-	dogPosZ = KeyFrame[0].dogPosZ;
-	head = KeyFrame[0].head;
-	rotDog = KeyFrame[0].rotDog;
-	legFL = KeyFrame[0].legFL;
-	legFR = KeyFrame[0].legFR;
-	legBL = KeyFrame[0].legBL;
-	legBR = KeyFrame[0].legBR;
-	tail = KeyFrame[0].tail;
-
-}
-void interpolation(void)
-{
-
-	KeyFrame[playIndex].incX = (KeyFrame[playIndex + 1].dogPosX - KeyFrame[playIndex].dogPosX) / i_max_steps;
-	KeyFrame[playIndex].incY = (KeyFrame[playIndex + 1].dogPosY - KeyFrame[playIndex].dogPosY) / i_max_steps;
-	KeyFrame[playIndex].incZ = (KeyFrame[playIndex + 1].dogPosZ - KeyFrame[playIndex].dogPosZ) / i_max_steps;
-	KeyFrame[playIndex].headInc = (KeyFrame[playIndex + 1].head - KeyFrame[playIndex].head) / i_max_steps;
-	KeyFrame[playIndex].rotDogInc = (KeyFrame[playIndex + 1].rotDog - KeyFrame[playIndex].rotDog) / i_max_steps;
-	KeyFrame[playIndex].legFLInc = (KeyFrame[playIndex + 1].legFL - KeyFrame[playIndex].legFL) / i_max_steps;
-	KeyFrame[playIndex].legFRInc = (KeyFrame[playIndex + 1].legFR - KeyFrame[playIndex].legFR) / i_max_steps;
-	KeyFrame[playIndex].legBLInc = (KeyFrame[playIndex + 1].legBL - KeyFrame[playIndex].legBL) / i_max_steps;
-	KeyFrame[playIndex].legBRInc = (KeyFrame[playIndex + 1].legBR - KeyFrame[playIndex].legBR) / i_max_steps;
-	KeyFrame[playIndex].tailInc = (KeyFrame[playIndex + 1].tail - KeyFrame[playIndex].tail) / i_max_steps;
-
-
-}
-
-void SaveAllKeyframesToFile(const char* path)
-{
-	std::ofstream out(path, std::ios::out | std::ios::trunc);
-	if (!out.is_open()) {
-		std::cerr << "[Keyframes] No se pudo abrir para escribir: " << path << "\n";
-		return;
-	}
-
-	// encabezado: cantidad de frames e i_max_steps actual
-	out << FrameIndex << " " << i_max_steps << "\n";
-
-	// por cada frame escribe 10 valores
-	for (int i = 0; i < FrameIndex; ++i) {
-		out << KeyFrame[i].dogPosX << " "
-			<< KeyFrame[i].dogPosY << " "
-			<< KeyFrame[i].dogPosZ << " "
-			<< KeyFrame[i].rotDog << " "
-			<< KeyFrame[i].head << " "
-			<< KeyFrame[i].legFL << " "
-			<< KeyFrame[i].legFR << " "
-			<< KeyFrame[i].legBL << " "
-			<< KeyFrame[i].legBR << " "
-			<< KeyFrame[i].tail
-			<< "\n";
-	}
-
-	out.close();
-	std::cout << "[Keyframes] Guardados " << FrameIndex << " frames en " << path << "\n";
-}
-
-bool LoadKeyframesFromFile(const char* path)
-{
-	std::ifstream in(path);
-	if (!in.is_open()) {
-		std::cerr << "[Keyframes] No existe o no se pudo abrir: " << path << "\n";
-		return false;
-	}
-
-	int nFrames = 0;
-	int loadedMaxSteps = i_max_steps; // fallback al actual si no se puede leer
-
-	// Lee encabezado
-	{
-		std::string header;
-		if (!std::getline(in, header)) {
-			std::cerr << "[Keyframes] Archivo vacío o inválido\n";
-			return false;
-		}
-		std::istringstream hs(header);
-		if (!(hs >> nFrames >> loadedMaxSteps)) {
-			std::cerr << "[Keyframes] Encabezado inválido\n";
-			return false;
-		}
-	}
-
-	if (nFrames <= 0) {
-		std::cerr << "[Keyframes] nFrames inválido\n";
-		return false;
-	}
-
-	// Limita por seguridad
-	if (nFrames > MAX_FRAMES) {
-		std::cerr << "[Keyframes] Aviso: " << nFrames
-			<< " excede MAX_FRAMES (" << MAX_FRAMES
-			<< "). Se truncará.\n";
-		nFrames = MAX_FRAMES;
-	}
-
-	// Inicializa por si acaso
-	for (int i = 0; i < MAX_FRAMES; ++i) {
-		KeyFrame[i].dogPosX = KeyFrame[i].dogPosY = KeyFrame[i].dogPosZ = 0.0f;
-		KeyFrame[i].incX = KeyFrame[i].incY = KeyFrame[i].incZ = 0.0f;
-		KeyFrame[i].rotDog = KeyFrame[i].rotDogInc = 0.0f;
-		KeyFrame[i].head = KeyFrame[i].headInc = 0.0f;
-		KeyFrame[i].legFL = KeyFrame[i].legFLInc = 0.0f;
-		KeyFrame[i].legFR = KeyFrame[i].legFRInc = 0.0f;
-		KeyFrame[i].legBL = KeyFrame[i].legBLInc = 0.0f;
-		KeyFrame[i].legBR = KeyFrame[i].legBRInc = 0.0f;
-		KeyFrame[i].tail = KeyFrame[i].tailInc = 0.0f;
-	}
-
-	// Lee cada frame
-	int i = 0;
-	for (; i < nFrames; ++i) {
-		std::string line;
-		if (!std::getline(in, line)) {
-			std::cerr << "[Keyframes] Fin de archivo antes de tiempo\n";
-			break;
-		}
-		std::istringstream ls(line);
-		float px, py, pz, rdog, h, fl, fr, bl, br, tt;
-		if (!(ls >> px >> py >> pz >> rdog >> h >> fl >> fr >> bl >> br >> tt)) {
-			std::cerr << "[Keyframes] Línea de frame inválida en índice " << i << "\n";
-			break;
-		}
-
-		KeyFrame[i].dogPosX = px;
-		KeyFrame[i].dogPosY = py;
-		KeyFrame[i].dogPosZ = pz;
-		KeyFrame[i].rotDog = rdog;
-		KeyFrame[i].head = h;
-		KeyFrame[i].legFL = fl;
-		KeyFrame[i].legFR = fr;
-		KeyFrame[i].legBL = bl;
-		KeyFrame[i].legBR = br;
-		KeyFrame[i].tail = tt;
-	}
-
-	FrameIndex = i;                          // actualiza cuántos frames hay
-	i_max_steps = loadedMaxSteps;             // usa los pasos del archivo
-	in.close();
-
-	if (FrameIndex > 0) {
-		// copia el primer frame a los estados actuales
-		resetElements();
-		std::cout << "[Keyframes] Cargados " << FrameIndex
-			<< " frames desde " << path
-			<< " (i_max_steps = " << i_max_steps << ")\n";
-		return true;
-	}
-
-	std::cerr << "[Keyframes] No se cargó ningún frame válido\n";
-	return false;
-}
-
-
+const char* ANIM_FILE = "frame_anim.txt";
 // Deltatime
-GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
-GLfloat lastFrame = 0.0f;  	// Time of last frame
+GLfloat deltaTime = 0.0f;
+GLfloat lastFrame = 0.0f;
 
-int main()
-{
-	// Init GLFW
-	glfwInit();
-	// Set all the required options for GLFW
-	/*glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);*/
+bool SaveAnimation(const char* path) {
+    std::ofstream ofs(path);
+    if (!ofs.is_open()) return false;
 
-	// Create a GLFWwindow object that we can use for GLFW's functions
-	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Armando Luna Juarez", nullptr, nullptr);
-
-	if (nullptr == window)
-	{
-		std::cout << "Failed to create GLFW window" << std::endl;
-		glfwTerminate();
-
-		return EXIT_FAILURE;
-	}
-
-	glfwMakeContextCurrent(window);
-
-	glfwGetFramebufferSize(window, &SCREEN_WIDTH, &SCREEN_HEIGHT);
-
-	// Set the required callback functions
-	glfwSetKeyCallback(window, KeyCallback);
-	glfwSetCursorPosCallback(window, MouseCallback);
-
-	// GLFW Options
-	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-	// Set this to true so GLEW knows to use a modern approach to retrieving function pointers and extensions
-	glewExperimental = GL_TRUE;
-	// Initialize GLEW to setup the OpenGL Function pointers
-	if (GLEW_OK != glewInit())
-	{
-		std::cout << "Failed to initialize GLEW" << std::endl;
-		return EXIT_FAILURE;
-	}
-
-	// Define the viewport dimensions
-	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-
-
-	Shader lightingShader("Shader/lighting.vs", "Shader/lighting.frag");
-	Shader lampShader("Shader/lamp.vs", "Shader/lamp.frag");
-	
-	// Shader para modelos con huesos
-	Shader shaderEsqueletico("Shader/lighting_skeletical.vs", "Shader/lighting.frag");
-	
-	Model vaca((char*)"Models/vaca.fbx");
-	Animation vacaAnimation((char*)"Models/vaca.fbx", &vaca);
-	Animator vacaAnimator(&vacaAnimation);
-
-	Model humanModel((char*)"Models/humano-animation.fbx");
-	Animation humanAnimation((char*)"Models/humano-animation.fbx", &humanModel);
-	Animator humanAnimator(&humanAnimation);
-
-	//models
-	Model DogBody((char*)"Models/DogBody.obj");
-	Model HeadDog((char*)"Models/HeadDog.obj");
-	Model DogTail((char*)"Models/TailDog.obj");
-	Model F_RightLeg((char*)"Models/F_RightLegDog.obj");
-	Model F_LeftLeg((char*)"Models/F_LeftLegDog.obj");
-	Model B_RightLeg((char*)"Models/B_RightLegDog.obj");
-	Model B_LeftLeg((char*)"Models/B_LeftLegDog.obj");
-	Model Piso((char*)"Models/galeria.obj");
-	Model Ball((char*)"Models/sky.obj");
-
-	
-
-
-	//KeyFrames
-	for (int i = 0; i < MAX_FRAMES; i++)
-	{
-		KeyFrame[i].dogPosX = 0;
-		KeyFrame[i].dogPosY = 0;
-		KeyFrame[i].dogPosZ = 0;
-		KeyFrame[i].incX = 0;
-		KeyFrame[i].incY = 0;
-		KeyFrame[i].incZ = 0;
-		KeyFrame[i].rotDog = 0;
-		KeyFrame[i].rotDogInc = 0;
-		KeyFrame[i].legFL = 0;   KeyFrame[i].legFLInc = 0;
-		KeyFrame[i].legFR = 0;   KeyFrame[i].legFRInc = 0;
-		KeyFrame[i].legBL = 0;   KeyFrame[i].legBLInc = 0;
-		KeyFrame[i].legBR = 0;   KeyFrame[i].legBRInc = 0;
-		KeyFrame[i].tail = 0;   KeyFrame[i].tailInc = 0;
-	}
-
-	LoadKeyframesFromFile(KEYFRAMES_PATH);
-
-	// First, set the container's VAO (and VBO)
-	GLuint VBO, VAO,EBO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	
-
-	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	
-	// Position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-	// normal attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	// Set texture units
-	lightingShader.Use();
-	glUniform1i(glGetUniformLocation(lightingShader.Program, "Material.difuse"), 0);
-	glUniform1i(glGetUniformLocation(lightingShader.Program, "Material.specular"), 1);
-
-	
-	glm::mat4 projection = glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
-
-	// Game loop
-	while (!glfwWindowShouldClose(window))
-	{
-
-		// Calculate deltatime of current frame
-		GLfloat currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
-
-		
-
-		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
-		glfwPollEvents();
-		DoMovement();
-		Animation_dog();
-
-		vacaAnimator.UpdateAnimation(deltaTime);
-		humanAnimator.UpdateAnimation(deltaTime);
-
-		// Clear the colorbuffer
-		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	   
-		// OpenGL options
-		glEnable(GL_DEPTH_TEST);
-
-		
-		glm::mat4 modelTemp = glm::mat4(1.0f); //Temp
-		
-	
-
-		// Use cooresponding shader when setting uniforms/drawing objects
-		lightingShader.Use();
-
-        glUniform1i(glGetUniformLocation(lightingShader.Program, "diffuse"), 0);
-		//glUniform1i(glGetUniformLocation(lightingShader.Program, "specular"),1);
-
-		GLint viewPosLoc = glGetUniformLocation(lightingShader.Program, "viewPos");
-		glUniform3f(viewPosLoc, camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
-
-
-		// Directional light
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.ambient"),0.6f,0.6f,0.6f);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.diffuse"), 0.6f, 0.6f, 0.6f);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.specular"),0.3f, 0.3f, 0.3f);
-
-
-		// Point light 1
-	    glm::vec3 lightColor;
-		lightColor.x= abs(sin(glfwGetTime() *Light1.x));
-		lightColor.y= abs(sin(glfwGetTime() *Light1.y));
-		lightColor.z= sin(glfwGetTime() *Light1.z);
-
-		
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].position"), pointLightPositions[0].x, pointLightPositions[0].y, pointLightPositions[0].z);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].ambient"), lightColor.x,lightColor.y, lightColor.z);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].diffuse"), lightColor.x,lightColor.y,lightColor.z);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].specular"), 1.0f, 0.2f, 0.2f);
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].constant"), 1.0f);
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].linear"), 0.045f);
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].quadratic"),0.075f);
-
-
-		// SpotLight
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.position"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.direction"), camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.ambient"), 0.2f, 0.2f, 0.8f);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.diffuse"), 0.2f, 0.2f, 0.8f);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.specular"), 0.0f, 0.0f, 0.0f);
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.constant"), 1.0f);
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.linear"), 0.3f);
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.quadratic"), 0.7f);
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.cutOff"), glm::cos(glm::radians(12.0f)));
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.outerCutOff"), glm::cos(glm::radians(18.0f)));
-		
-
-		// Set material properties
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 5.0f);
-
-		// Create camera transformations
-		glm::mat4 view;
-		view = camera.GetViewMatrix();
-
-		// Get the uniform locations
-		GLint modelLoc = glGetUniformLocation(lightingShader.Program, "model");
-		GLint viewLoc = glGetUniformLocation(lightingShader.Program, "view");
-		GLint projLoc = glGetUniformLocation(lightingShader.Program, "projection");
-
-		// Pass the matrices to the shader
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
-		glm::mat4 model(1);
-
-	
-		
-		//Carga de modelo 
-        view = camera.GetViewMatrix();	
-		model = glm::mat4(1);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Piso.Draw(lightingShader);
-
-		model = glm::mat4(1);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
-		//Body
-		modelTemp = model = glm::rotate(model, glm::radians(rotXDog), glm::vec3(1.0f, 0.0f, 0.0f));
-		modelTemp = model = glm::translate(model, glm::vec3(dogPosX, dogPosY, dogPosZ));
-		modelTemp = model = glm::rotate(model, glm::radians(rotDog), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		DogBody.Draw(lightingShader);
-		//Head
-		model = modelTemp;
-		model = glm::translate(model, glm::vec3(0.0f, 0.093f, 0.208f));
-		model = glm::rotate(model, glm::radians(head), glm::vec3(0.0f, 0.0f, 1.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		HeadDog.Draw(lightingShader);
-		//Tail 
-		model = modelTemp;
-		model = glm::translate(model, glm::vec3(0.0f, 0.026f, -0.288f));
-		model = glm::rotate(model, glm::radians(tail), glm::vec3(0.0f, 0.0f, -1.0f)); 
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model)); 
-		DogTail.Draw(lightingShader);
-		//Front Left Leg
-		model = modelTemp;
-		model = glm::translate(model, glm::vec3(0.112f, -0.044f, 0.074f));
-		model = glm::rotate(model, glm::radians(legFL), glm::vec3(-1.0f, 0.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		F_LeftLeg.Draw(lightingShader);
-		//Front Right Leg
-		model = modelTemp; 
-		model = glm::translate(model, glm::vec3(-0.111f, -0.055f, 0.074f));
-		model = glm::rotate(model, glm::radians(legFR), glm::vec3(1.0f, 0.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		F_RightLeg.Draw(lightingShader);
-		//Back Left Leg
-		model = modelTemp; 
-		model = glm::translate(model, glm::vec3(0.082f, -0.046, -0.218)); 
-		model = glm::rotate(model, glm::radians(legBL), glm::vec3(1.0f, 0.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model)); 
-		B_LeftLeg.Draw(lightingShader);
-		//Back Right Leg
-		model = modelTemp; 
-		model = glm::translate(model, glm::vec3(-0.083f, -0.057f, -0.231f));
-		model = glm::rotate(model, glm::radians(legBR), glm::vec3(-1.0f, 0.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		B_RightLeg.Draw(lightingShader); 
-
-
-		model = glm::mat4(1);
-		glEnable(GL_BLEND);//Avtiva la funcionalidad para trabajar el canal alfa
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
-		model = glm::rotate(model, glm::radians(rotBall), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-	    Ball.Draw(lightingShader); 
-		glDisable(GL_BLEND);  //Desactiva el canal alfa 
-		glBindVertexArray(0);
-
-		// shader para animación por huesos
-		shaderEsqueletico.Use();
-
-		// viewPos (Posición de la cámara)
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "viewPos"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
-		
-		// Luz Direccional
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.ambient"),0.6f,0.6f,0.6f);
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.diffuse"), 0.6f, 0.6f, 0.6f);
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.specular"),0.3f, 0.3f, 0.3f);
-
-		// Luz Puntual (Point light 1)
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].position"), pointLightPositions[0].x, pointLightPositions[0].y, pointLightPositions[0].z);
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].ambient"), lightColor.x,lightColor.y, lightColor.z);
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].diffuse"), lightColor.x,lightColor.y,lightColor.z);
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].specular"), 1.0f, 0.2f, 0.2f);
-		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].constant"), 1.0f);
-		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].linear"), 0.045f);
-		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].quadratic"),0.075f);
-
-		// Linterna (SpotLight)
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.position"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.direction"), camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.ambient"), 0.2f, 0.2f, 0.8f);
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.diffuse"), 0.2f, 0.2f, 0.8f);
-		glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.specular"), 0.0f, 0.0f, 0.0f);
-		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.constant"), 1.0f);
-		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.linear"), 0.3f);
-		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.quadratic"), 0.7f);
-		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.cutOff"), glm::cos(glm::radians(12.0f)));
-		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.outerCutOff"), glm::cos(glm::radians(18.0f)));
-		
-		// Propiedades del Material
-		glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "material.shininess"), 5.0f);
-		glUniform1i(glGetUniformLocation(shaderEsqueletico.Program, "diffuse"), 0);
-		
-		
-		glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-
-		auto boneMatrix = vacaAnimator.GetFinalBoneMatrices();
-		for (int i = 0; i < boneMatrix.size(); ++i)
-		{
-			string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
-			glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(boneMatrix[i]));
-		}
-
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(8.0f, 1.0f, 3.42f));
-		model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(0.01));
-		glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		vaca.Draw(shaderEsqueletico);
-
-		auto boneMatrices = humanAnimator.GetFinalBoneMatrices();
-		for (int i = 0; i < boneMatrices.size(); ++i)
-		{
-			string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
-			glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(boneMatrices[i]));
-		}
-
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(0.01));
-		glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		humanModel.Draw(shaderEsqueletico);
-	
-
-		// Also draw the lamp object, again binding the appropriate shader
-		lampShader.Use();
-		// Get location objects for the matrices on the lamp shader (these could be different on a different shader)
-		modelLoc = glGetUniformLocation(lampShader.Program, "model");
-		viewLoc = glGetUniformLocation(lampShader.Program, "view");
-		projLoc = glGetUniformLocation(lampShader.Program, "projection");
-
-		// Set matrices
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-		model = glm::mat4(1);
-		model = glm::translate(model, lightPos);
-		model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		// Draw the light object (using light's vertex attributes)
-		
-		model = glm::mat4(1);
-		model = glm::translate(model, pointLightPositions[0]);
-		model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		
-		glBindVertexArray(0);
-
-		
-		// Swap the screen buffers
-		glfwSwapBuffers(window);
-	}
-
-	if (FrameIndex > 1) {
-		SaveAllKeyframesToFile(KEYFRAMES_PATH);
-	}
-	
-	// Terminate GLFW, clearing any resources allocated by GLFW.
-	glfwTerminate();
-
-	return 0;
+    ofs << FrameIndex << " " << i_max_steps << "\n";
+    for (int i = 0; i < FrameIndex; ++i) {
+        const FRAME& k = KeyFrame[i];
+        ofs << k.PosX << " " << k.PosY << " " << k.PosZ << " "
+            << k.cue << " " << k.Pd << " " << k.Pder << " "
+            << k.Pf << " " << k.Pi << " " << k.Pizq << " "
+            << k.Ptobj << " " << k.rotStem << "\n";
+    }
+    return true;
 }
 
-// Moves/alters the camera positions based on user input
-void DoMovement()
-{
-	//Dog Controls
-	
-	// Cabeza (opcional, si quieres alternativas a 4/5)
-	if (keys[GLFW_KEY_I]) head += 1.0f;
-	if (keys[GLFW_KEY_O]) head -= 1.0f;
+bool LoadAnimation(const char* path) {
+    std::ifstream ifs(path);
+    if (!ifs.is_open()) return false;
 
-	// Pata delantera izquierda
-	if (keys[GLFW_KEY_Q]) legFL += 1.0f;
-	if (keys[GLFW_KEY_E]) legFL -= 1.0f;
+    int count = 0;
+    ifs >> count >> i_max_steps;
+    if (!ifs.good()) return false;
 
-	// Pata delantera derecha (saludo)
-	if (keys[GLFW_KEY_R]) legFR += 1.0f;
-	if (keys[GLFW_KEY_F]) legFR -= 1.0f;
+    FrameIndex = std::min(count, (int)MAX_FRAMES);
 
-	// Pata trasera izquierda
-	if (keys[GLFW_KEY_V]) legBL += 1.0f;
-	if (keys[GLFW_KEY_B]) legBL -= 1.0f;
+    for (int i = 0; i < FrameIndex; ++i) {
+        FRAME k{};
+        ifs >> k.PosX >> k.PosY >> k.PosZ
+            >> k.cue >> k.Pd >> k.Pder
+            >> k.Pf >> k.Pi >> k.Pizq
+            >> k.Ptobj >> k.rotStem;
+        if (!ifs.good()) { FrameIndex = i; break; }
 
-	// Pata trasera derecha
-	if (keys[GLFW_KEY_N]) legBR += 1.0f;
-	if (keys[GLFW_KEY_M]) legBR -= 1.0f;
+        k.incX = k.incY = k.incZ = 0.0f;
+        k.cueInc = 0.0f;
+        k.PizqInc = 0.0f;
+        k.PderInc = 0.0f;
+        k.PfInc = k.PiInc = k.PdInc = k.PtobjInc = 0.0f;
+        k.rotStemInc = 0.0f;
 
-	// Cola
-	if (keys[GLFW_KEY_Z]) tail += 1.0f;
-	if (keys[GLFW_KEY_X]) tail -= 1.0f;
+        KeyFrame[i] = k;
+    }
 
-	if (keys[GLFW_KEY_4])   rotXDog += 1.0f;  
-	if (keys[GLFW_KEY_5]) rotXDog -= 1.0f;
-
-
-	if (keys[GLFW_KEY_2])
-	{
-		
-			rotDog += 1.0f;
-
-	}
-
-	if (keys[GLFW_KEY_3])
-	{
-		
-			rotDog -= 1.0f;
-
-	}
-			
-	if (keys[GLFW_KEY_H])
-	{
-		dogPosZ += 0.01;
-	}
-
-	if (keys[GLFW_KEY_Y])
-	{
-		dogPosZ -= 0.01;
-	}
-
-	if (keys[GLFW_KEY_G])
-	{
-		dogPosX -= 0.01;
-	}
-
-	if (keys[GLFW_KEY_J])
-	{
-		dogPosX += 0.01;
-	}
-
-	if (keys[GLFW_KEY_2])
-	{
-		dogPosY -= 0.01;
-	}
-
-	if (keys[GLFW_KEY_3])
-	{
-		dogPosY += 0.01;
-	}
-
-	// Camera controls
-	if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP])
-	{
-		camera.ProcessKeyboard(FORWARD, deltaTime);
-
-	}
-
-	if (keys[GLFW_KEY_S] || keys[GLFW_KEY_DOWN])
-	{
-		camera.ProcessKeyboard(BACKWARD, deltaTime);
-
-
-	}
-
-	if (keys[GLFW_KEY_A] || keys[GLFW_KEY_LEFT])
-	{
-		camera.ProcessKeyboard(LEFT, deltaTime);
-
-
-	}
-
-	if (keys[GLFW_KEY_D] || keys[GLFW_KEY_RIGHT])
-	{
-		camera.ProcessKeyboard(RIGHT, deltaTime);
-
-
-	}
-
-	if (keys[GLFW_KEY_T])
-	{
-		pointLightPositions[0].x += 0.01f;
-	}
-	if (keys[GLFW_KEY_G])
-	{
-		pointLightPositions[0].x -= 0.01f;
-	}
-
-	if (keys[GLFW_KEY_Y])
-	{
-		pointLightPositions[0].y += 0.01f;
-	}
-
-	if (keys[GLFW_KEY_H])
-	{
-		pointLightPositions[0].y -= 0.01f;
-	}
-	if (keys[GLFW_KEY_U])
-	{
-		pointLightPositions[0].z -= 0.1f;
-	}
-	if (keys[GLFW_KEY_J])
-	{
-		pointLightPositions[0].z += 0.01f;
-	}
-	
+    if (FrameIndex > 0) resetElements();
+    return true;
 }
 
-// Is called whenever a key is pressed/released via GLFW
-void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode)
-{
-	// Reproducir animación cargada al presionar X
-	if (key == GLFW_KEY_X && action == GLFW_PRESS) {
-		if (FrameIndex > 1) {
-			resetElements();
-			play = true;
-			playIndex = 0;
-			i_curr_steps = 0;
-			interpolation();
-			std::cout << "[Keyframes] Reproduciendo animación cargada (" << FrameIndex << " frames)\n";
-		}
-		else {
-			std::cout << "[Keyframes] No hay animación cargada o solo 1 frame\n";
-		}
-	}
+void saveFrame(void) {
+    std::printf("frameindex %d\n", FrameIndex);
 
-	if (keys[GLFW_KEY_L])
-	{
-		if (play == false && (FrameIndex > 1))
-		{
+    KeyFrame[FrameIndex].PosX = PosX;
+    KeyFrame[FrameIndex].PosY = PosY;
+    KeyFrame[FrameIndex].PosZ = PosZ;
+    KeyFrame[FrameIndex].cue = cue;
+    KeyFrame[FrameIndex].Pd = Pd;
+    KeyFrame[FrameIndex].Pder = Pder;
+    KeyFrame[FrameIndex].Pf = Pf;
+    KeyFrame[FrameIndex].Pi = Pi;
+    KeyFrame[FrameIndex].Pizq = Pizq;
+    KeyFrame[FrameIndex].Ptobj = Ptobj;
+    KeyFrame[FrameIndex].rotStem = rotStem;
 
-			resetElements();
-			//First Interpolation				
-			interpolation();
-
-			play = true;
-			playIndex = 0;
-			i_curr_steps = 0;
-		}
-		else
-		{
-			play = false;
-		}
-
-	}
-
-	if (keys[GLFW_KEY_K])
-	{
-		if (FrameIndex < MAX_FRAMES)
-		{
-			saveFrame();
-		}
-
-	}
-
-
-
-	if (GLFW_KEY_ESCAPE == key && GLFW_PRESS == action)
-	{
-		glfwSetWindowShouldClose(window, GL_TRUE);
-	}
-
-	if (key >= 0 && key < 1024)
-	{
-		if (action == GLFW_PRESS)
-		{
-			keys[key] = true;
-		}
-		else if (action == GLFW_RELEASE)
-		{
-			keys[key] = false;
-		}
-	}
-
-	if (keys[GLFW_KEY_SPACE])
-	{
-		active = !active;
-		if (active)
-		{
-			Light1 = glm::vec3(0.2f, 0.8f, 1.0f);
-			
-		}
-		else
-		{
-			Light1 = glm::vec3(0);//Cuado es solo un valor en los 3 vectores pueden dejar solo una componente
-		}
-	}
-	
-	
-}
-void Animation_dog() {
-
-	if (play)
-	{
-		if (i_curr_steps >= i_max_steps) //end of animation between frames?
-		{
-			playIndex++;
-			if (playIndex > FrameIndex - 2)	//end of total animation?
-			{
-				printf("termina anim\n");
-				playIndex = 0;
-				play = false;
-			}
-			else //Next frame interpolations
-			{
-				i_curr_steps = 0; //Reset counter
-				//Interpolation
-				interpolation();
-			}
-		}
-		else
-		{
-			//Draw animation
-			dogPosX += KeyFrame[playIndex].incX;
-			dogPosY += KeyFrame[playIndex].incY;
-			dogPosZ += KeyFrame[playIndex].incZ;
-			head += KeyFrame[playIndex].headInc;
-			rotDog += KeyFrame[playIndex].rotDogInc;
-			legFL += KeyFrame[playIndex].legFLInc;
-			legFR += KeyFrame[playIndex].legFRInc;
-			legBL += KeyFrame[playIndex].legBLInc;
-			legBR += KeyFrame[playIndex].legBRInc;
-			tail += KeyFrame[playIndex].tailInc;
-
-			i_curr_steps++;
-		}
-
-	}
-	
+    FrameIndex = std::min(FrameIndex + 1, MAX_FRAMES);
 }
 
-void MouseCallback(GLFWwindow *window, double xPos, double yPos)
-{
-	if (firstMouse)
-	{
-		lastX = xPos;
-		lastY = yPos;
-		firstMouse = false;
-	}
+void resetElements(void) {
+    if (FrameIndex == 0) return;
 
-	GLfloat xOffset = xPos - lastX;
-	GLfloat yOffset = lastY - yPos;  // Reversed since y-coordinates go from bottom to left
-
-	lastX = xPos;
-	lastY = yPos;
-
-	camera.ProcessMouseMovement(xOffset, yOffset);
+    PosX = KeyFrame[0].PosX;
+    PosY = KeyFrame[0].PosY;
+    PosZ = KeyFrame[0].PosZ;
+    cue = KeyFrame[0].cue;
+    Pd = KeyFrame[0].Pd;
+    Pder = KeyFrame[0].Pder;
+    Pf = KeyFrame[0].Pf;
+    Pi = KeyFrame[0].Pi;
+    Pizq = KeyFrame[0].Pizq;
+    Ptobj = KeyFrame[0].Ptobj;
+    rotStem = KeyFrame[0].rotStem;
 }
 
+void interpolation(void) {
+    KeyFrame[playIndex].incX = (KeyFrame[playIndex + 1].PosX - KeyFrame[playIndex].PosX) / i_max_steps;
+    KeyFrame[playIndex].incY = (KeyFrame[playIndex + 1].PosY - KeyFrame[playIndex].PosY) / i_max_steps;
+    KeyFrame[playIndex].incZ = (KeyFrame[playIndex + 1].PosZ - KeyFrame[playIndex].PosZ) / i_max_steps;
+
+    KeyFrame[playIndex].cueInc = (KeyFrame[playIndex + 1].cue - KeyFrame[playIndex].cue) / i_max_steps;
+    KeyFrame[playIndex].PdInc = (KeyFrame[playIndex + 1].Pd - KeyFrame[playIndex].Pd) / i_max_steps;
+    KeyFrame[playIndex].PderInc = (KeyFrame[playIndex + 1].Pder - KeyFrame[playIndex].Pder) / i_max_steps;
+    KeyFrame[playIndex].PfInc = (KeyFrame[playIndex + 1].Pf - KeyFrame[playIndex].Pf) / i_max_steps;
+    KeyFrame[playIndex].PiInc = (KeyFrame[playIndex + 1].Pi - KeyFrame[playIndex].Pi) / i_max_steps;
+    KeyFrame[playIndex].PizqInc = (KeyFrame[playIndex + 1].Pizq - KeyFrame[playIndex].Pizq) / i_max_steps;
+    KeyFrame[playIndex].PtobjInc = (KeyFrame[playIndex + 1].Ptobj - KeyFrame[playIndex].Ptobj) / i_max_steps;
+    KeyFrame[playIndex].rotStemInc = (KeyFrame[playIndex + 1].rotStem - KeyFrame[playIndex].rotStem) / i_max_steps;
+}
+
+int main() {
+    // Init GLFW
+    if (!glfwInit()) {
+        std::cerr << "Failed to init GLFW\n";
+        return EXIT_FAILURE;
+    }
+
+    // Create a GLFWwindow object
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Armando Luna Juarez", nullptr, nullptr);
+    if (nullptr == window) {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return EXIT_FAILURE;
+    }
+
+    glfwMakeContextCurrent(window);
+    glfwGetFramebufferSize(window, &SCREEN_WIDTH, &SCREEN_HEIGHT);
+
+    // Set callbacks
+    glfwSetKeyCallback(window, KeyCallback);
+    glfwSetCursorPosCallback(window, MouseCallback);
+
+    // GLEW
+    glewExperimental = GL_TRUE;
+    if (GLEW_OK != glewInit()) {
+        std::cout << "Failed to initialize GLEW" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // Viewport
+    glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    // ImGui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+
+    // Shaders
+    Shader lightingShader("Shader/lighting.vs", "Shader/lighting.frag");
+    Shader lampShader("Shader/lamp.vs", "Shader/lamp.frag");
+    Shader shaderEsqueletico("Shader/lighting_skeletical.vs", "Shader/lighting.frag");
+
+    // Models
+    Model Piso((char*)"Models/galeria.obj");
+
+    // Modelos de la escultura
+    Model Ecue((char*)"Models/cue.obj");
+    Model EPd((char*)"Models/Pd.obj");
+    Model EPder((char*)"Models/Pder.obj");
+    Model EPf((char*)"Models/Pf.obj");
+    Model EPi((char*)"Models/Pi.obj");
+    Model EPizq((char*)"Models/Pizq.obj");
+    Model EPtobj((char*)"Models/Ptobj.obj");
+
+    // Animación esquelética (humano y vaca)
+    Model vaca((char*)"Models/vaca.fbx");
+    Animation vacaAnimation((char*)"Models/vaca.fbx", &vaca);
+    Animator vacaAnimator(&vacaAnimation);
+
+    Model humanModel((char*)"Models/humano-animation.fbx");
+    Animation humanAnimation((char*)"Models/humano-animation.fbx", &humanModel);
+    Animator humanAnimator(&humanAnimation);
+
+    // Inicializa keyframes
+    for (int i = 0; i < MAX_FRAMES; i++) {
+        KeyFrame[i].PosX = 0;  KeyFrame[i].PosY = 0;  KeyFrame[i].PosZ = 0;
+        KeyFrame[i].incX = 0;  KeyFrame[i].incY = 0;  KeyFrame[i].incZ = 0;
+        KeyFrame[i].cue = 0;   KeyFrame[i].cueInc = 0;
+        KeyFrame[i].Pd = 0;    KeyFrame[i].PdInc = 0;
+        KeyFrame[i].Pder = 0;  KeyFrame[i].PderInc = 0;
+        KeyFrame[i].Pf = 0;    KeyFrame[i].PfInc = 0;
+        KeyFrame[i].Pi = 0;    KeyFrame[i].PiInc = 0;
+        KeyFrame[i].Pizq = 0;  KeyFrame[i].PizqInc = 0;
+        KeyFrame[i].Ptobj = 0; KeyFrame[i].PtobjInc = 0;
+        KeyFrame[i].rotStem = 0; KeyFrame[i].rotStemInc = 0;
+    }
+
+    if (LoadAnimation(ANIM_FILE)) {
+        std::cout << "Animacion cargada desde " << ANIM_FILE << " con " << FrameIndex << " frames.\n";
+    }
+    else {
+        std::cout << "No se encontro animacion previa. Empezando en blanco.\n";
+    }
+
+    // Precarga de pinturas
+    SetupPaintings();
+
+    // VAO/VBO simple (lamparita demo)
+    GLuint VBO = 0, VAO = 0;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    // normal attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    // Material samplers (nombres típicos)
+    lightingShader.Use();
+    glUniform1i(glGetUniformLocation(lightingShader.Program, "material.diffuse"), 0);
+    glUniform1i(glGetUniformLocation(lightingShader.Program, "material.specular"), 1);
+
+    glm::mat4 projection = glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
+
+    // OpenGL options
+    glEnable(GL_DEPTH_TEST);
+
+    // Game loop
+    while (!glfwWindowShouldClose(window)) {
+        // Deltatime
+        GLfloat currentFrame = (GLfloat)glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        // Input
+        glfwPollEvents();
+        DoMovement();
+        Animation_esculturas();
+
+        // Clear
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Shaders activos
+        lightingShader.Use();
+
+        // Update animaciones por huesos
+        vacaAnimator.UpdateAnimation(deltaTime);
+        humanAnimator.UpdateAnimation(deltaTime);
+
+        glm::mat4 view = camera.GetViewMatrix();
+        GLint modelLoc = glGetUniformLocation(lightingShader.Program, "model");
+        GLint viewLoc = glGetUniformLocation(lightingShader.Program, "view");
+        GLint projLoc = glGetUniformLocation(lightingShader.Program, "projection");
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f)));
+
+        // Iluminación (igual que tu versión, compactado)
+        GLint viewPosLoc = glGetUniformLocation(lightingShader.Program, "viewPos");
+        glUniform3f(viewPosLoc, camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
+
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.ambient"), 0.6f, 0.6f, 0.6f);
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.diffuse"), 0.6f, 0.6f, 0.6f);
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.specular"), 0.3f, 0.3f, 0.3f);
+
+        glm::vec3 lightColor;
+        lightColor.x = fabsf(sinf(currentFrame * Light1.x));
+        lightColor.y = fabsf(sinf(currentFrame * Light1.y));
+        lightColor.z = sinf(currentFrame * Light1.z);
+
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].position"), pointLightPositions[0].x, pointLightPositions[0].y, pointLightPositions[0].z);
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].ambient"), lightColor.x, lightColor.y, lightColor.z);
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].diffuse"), lightColor.x, lightColor.y, lightColor.z);
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].specular"), 1.0f, 0.2f, 0.2f);
+        glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].constant"), 1.0f);
+        glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].linear"), 0.045f);
+        glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].quadratic"), 0.075f);
+
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.position"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.direction"), camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.ambient"), 0.2f, 0.2f, 0.8f);
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.diffuse"), 0.2f, 0.2f, 0.8f);
+        glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.specular"), 0.0f, 0.0f, 0.0f);
+        glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.constant"), 1.0f);
+        glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.linear"), 0.3f);
+        glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.quadratic"), 0.7f);
+        glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.cutOff"), glm::cos(glm::radians(12.0f)));
+        glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.outerCutOff"), glm::cos(glm::radians(18.0f)));
+
+        glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 5.0f);
+
+        // Piso + escultura compuesta
+        glm::mat4 model = glm::mat4(1.0f);
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        Piso.Draw(lightingShader);
+
+        glm::mat4 base = glm::mat4(1.0f);
+        base = glm::translate(base, glm::vec3(-7.5f, 1.02f, -13.0f));
+        base = glm::rotate(base, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        base = glm::scale(base, glm::vec3(0.18f));
+        base = glm::rotate(base, glm::radians(rotStem), glm::vec3(0.0f, 1.0f, 0.0f));
+        base = glm::translate(base, glm::vec3(PosX, PosY, PosZ));
+
+        model = base; model = glm::rotate(model, glm::radians(cue), glm::vec3(0, 1, 0));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));  Ecue.Draw(lightingShader);
+
+        model = base; model = glm::rotate(model, glm::radians(Pd), glm::vec3(0, 1, 0));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));  EPd.Draw(lightingShader);
+
+        model = base; model = glm::rotate(model, glm::radians(Pder), glm::vec3(0, 1, 0));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));  EPder.Draw(lightingShader);
+
+        model = base; model = glm::rotate(model, glm::radians(Pf), glm::vec3(0, 1, 0));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));  EPf.Draw(lightingShader);
+
+        model = base; model = glm::rotate(model, glm::radians(Pi), glm::vec3(0, 1, 0));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));  EPi.Draw(lightingShader);
+
+        model = base; model = glm::rotate(model, glm::radians(Pizq), glm::vec3(0, 1, 0));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));  EPizq.Draw(lightingShader);
+
+        model = base; model = glm::rotate(model, glm::radians(Ptobj), glm::vec3(0, 1, 0));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));  EPtobj.Draw(lightingShader);
+
+        // Lámpara demo (cubito)
+        lampShader.Use();
+        GLint modelLocLamp = glGetUniformLocation(lampShader.Program, "model");
+        GLint viewLocLamp = glGetUniformLocation(lampShader.Program, "view");
+        GLint projLocLamp = glGetUniformLocation(lampShader.Program, "projection");
+        glUniformMatrix4fv(viewLocLamp, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(projLocLamp, 1, GL_FALSE, glm::value_ptr(projection));
+
+        model = glm::mat4(1);
+        model = glm::translate(model, pointLightPositions[0]);
+        model = glm::scale(model, glm::vec3(0.2f));
+        glUniformMatrix4fv(modelLocLamp, 1, GL_FALSE, glm::value_ptr(model));
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+
+        // shader para animación por huesos
+        shaderEsqueletico.Use();
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "viewPos"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.ambient"), 0.6f, 0.6f, 0.6f);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.diffuse"), 0.6f, 0.6f, 0.6f);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.specular"), 0.3f, 0.3f, 0.3f);
+
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].position"), pointLightPositions[0].x, pointLightPositions[0].y, pointLightPositions[0].z);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].ambient"), lightColor.x, lightColor.y, lightColor.z);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].diffuse"), lightColor.x, lightColor.y, lightColor.z);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].specular"), 1.0f, 0.2f, 0.2f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].constant"), 1.0f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].linear"), 0.045f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].quadratic"), 0.075f);
+
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.position"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.direction"), camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.ambient"), 0.2f, 0.2f, 0.8f);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.diffuse"), 0.2f, 0.2f, 0.8f);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.specular"), 0.0f, 0.0f, 0.0f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.constant"), 1.0f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.linear"), 0.3f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.quadratic"), 0.7f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.cutOff"), glm::cos(glm::radians(12.0f)));
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.outerCutOff"), glm::cos(glm::radians(18.0f)));
+
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "material.shininess"), 5.0f);
+        glUniform1i(glGetUniformLocation(shaderEsqueletico.Program, "diffuse"), 0);
+
+        glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+        {
+            auto boneMatrix = vacaAnimator.GetFinalBoneMatrices();
+            for (size_t i = 0; i < boneMatrix.size(); ++i) {
+                std::string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
+                glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(boneMatrix[i]));
+            }
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(8.0f, 1.0f, 3.42f));
+            model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(0.01f));
+            glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+            vaca.Draw(shaderEsqueletico);
+        }
+
+        {
+            auto boneMatrices = humanAnimator.GetFinalBoneMatrices();
+            for (size_t i = 0; i < boneMatrices.size(); ++i) {
+                std::string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
+                glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(boneMatrices[i]));
+            }
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(0.01f));
+            glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+            humanModel.Draw(shaderEsqueletico);
+        }
+
+        // Actualiza pintura cercana (si te alejas, se cierra)
+        {
+            int nearIdx = FindNearestPainting(camera.GetPosition(), gShowRadius);
+            if (nearIdx < 0) { gCurrentPaint = -1; gShowCard = false; }
+            else              gCurrentPaint = nearIdx;
+        }
+
+        // --- UI ImGui ---
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // Animación de entrada
+        static float alpha = 0.0f, slide = 20.0f;
+        float dt = ImGui::GetIO().DeltaTime;
+        float aTarget = (gShowCard && gCurrentPaint >= 0) ? 1.0f : 0.0f;
+        float sTarget = (gShowCard && gCurrentPaint >= 0) ? 0.0f : 20.0f;
+        auto damp = [](float c, float t, float spd, float dt2) { return c + (t - c) * (1.0f - std::exp(-spd * dt2)); };
+        alpha = damp(alpha, aTarget, 10.0f, dt);
+        slide = damp(slide, sTarget, 10.0f, dt);
+
+        if (alpha > 0.01f && gCurrentPaint >= 0) {
+            const Painting& P = gPaints[gCurrentPaint];
+            ImGui::SetNextWindowBgAlpha(0.92f * alpha);
+            ImGui::SetNextWindowPos(ImVec2(20, 20 + slide), ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(360, 0), ImGuiCond_Always);
+
+            ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+                ImGuiWindowFlags_AlwaysAutoResize |
+                ImGuiWindowFlags_NoMove |
+                ImGuiWindowFlags_NoSavedSettings |
+                ImGuiWindowFlags_NoFocusOnAppearing |
+                ImGuiWindowFlags_NoNav;
+
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(14, 12));
+            if (ImGui::Begin("##card_info", nullptr, flags)) {
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+
+                // Header rojo
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(230, 50, 50, (int)(0.85f * 255)));
+                ImGui::BeginChild("hdr", ImVec2(0, 28), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+                ImGui::TextUnformatted("Tarjeta de pintura");
+                ImGui::EndChild();
+                ImGui::PopStyleColor();
+
+                ImGui::Separator();
+                ImGui::Text("Titulo: %s", P.titulo.c_str());
+                ImGui::Text("Autor : %s", P.autor.c_str());
+                ImGui::Text("Año  : %d", P.anio); // <-- corregido
+                ImGui::Spacing();
+                ImGui::TextWrapped("%s", P.desc.c_str());
+                ImGui::Spacing();
+
+                if (ImGui::Button("Ocultar (TAB)")) gShowCard = false;
+
+                ImGui::PopStyleVar(); // Alpha
+            }
+            ImGui::End();
+            ImGui::PopStyleVar(2);
+        }
+
+        // Render ImGui encima
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        // Swap
+        glfwSwapBuffers(window);
+    }
+
+    // Shutdown ImGui
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    // Terminate GLFW
+    glfwTerminate();
+    return 0;
+}
+
+//Animación
+void DoMovement() {
+    if (keys[GLFW_KEY_W])    camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (keys[GLFW_KEY_S])    camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (keys[GLFW_KEY_A])    camera.ProcessKeyboard(LEFT, deltaTime);
+    if (keys[GLFW_KEY_D])    camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        glfwSetWindowShouldClose(window, GL_TRUE);
+    }
+    if (key >= 0 && key < 1024) {
+        if (action == GLFW_PRESS)      keys[key] = true;
+        else if (action == GLFW_RELEASE) keys[key] = false;
+    }
+
+    // Reproducir / detener
+    if (key == GLFW_KEY_L && action == GLFW_PRESS) {
+        if (!play && (FrameIndex > 1)) {
+            resetElements();
+            interpolation();
+            play = true;
+            playIndex = 0;
+            i_curr_steps = 0;
+        }
+        else {
+            play = false;
+        }
+    }
+
+    // --- TAB: alterna tarjeta solo si hay pintura cercana ---
+    if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
+        gCurrentPaint = FindNearestPainting(camera.GetPosition(), gShowRadius);
+        if (gCurrentPaint >= 0) gShowCard = !gShowCard; else gShowCard = false;
+    }
+
+    // Guardar / Cargar animación rápido
+    if (key == GLFW_KEY_F5 && action == GLFW_PRESS) {
+        if (SaveAnimation(ANIM_FILE)) std::cout << "Animación guardada.\n";
+        else std::cout << "No se pudo guardar animación.\n";
+    }
+    if (key == GLFW_KEY_F6 && action == GLFW_PRESS) {
+        if (LoadAnimation(ANIM_FILE)) std::cout << "Animación cargada.\n";
+        else std::cout << "No se pudo cargar animación.\n";
+    }
+}
+
+void Animation_esculturas() {
+    if (!play) return;
+
+    if (i_curr_steps >= i_max_steps) {
+        playIndex++;
+        if (playIndex > FrameIndex - 2) {
+            std::printf("termina anim\n");
+            playIndex = 0;
+            play = false;
+        }
+        else {
+            i_curr_steps = 0;
+            interpolation();
+        }
+    }
+    else {
+        PosX += KeyFrame[playIndex].incX;
+        PosY += KeyFrame[playIndex].incY;
+        PosZ += KeyFrame[playIndex].incZ;
+
+        cue += KeyFrame[playIndex].cueInc;
+        Pd += KeyFrame[playIndex].PdInc;
+        Pder += KeyFrame[playIndex].PderInc;
+        Pf += KeyFrame[playIndex].PfInc;
+        Pi += KeyFrame[playIndex].PiInc;
+        Pizq += KeyFrame[playIndex].PizqInc;
+        Ptobj += KeyFrame[playIndex].PtobjInc;
+        rotStem += KeyFrame[playIndex].rotStemInc;
+
+        i_curr_steps++;
+    }
+}
+
+void MouseCallback(GLFWwindow* window, double xPos, double yPos) {
+    if (firstMouse) {
+        lastX = (GLfloat)xPos;
+        lastY = (GLfloat)yPos;
+        firstMouse = false;
+    }
+    GLfloat xOffset = (GLfloat)xPos - lastX;
+    GLfloat yOffset = lastY - (GLfloat)yPos;
+    lastX = (GLfloat)xPos;
+    lastY = (GLfloat)yPos;
+    camera.ProcessMouseMovement(xOffset, yOffset);
+}

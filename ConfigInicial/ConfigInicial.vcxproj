@@ -32,6 +32,12 @@
     <None Include="lighting_skeletical.vs" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\External Libraries\imgui\backends\imgui_impl_glfw.cpp" />
+    <ClCompile Include="..\External Libraries\imgui\backends\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="..\External Libraries\imgui\imgui.cpp" />
+    <ClCompile Include="..\External Libraries\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\External Libraries\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\External Libraries\imgui\imgui_widgets.cpp" />
     <ClCompile Include="KeyFrames.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -92,7 +98,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\External Libraries\assimp\include;$(SolutionDir)\External Libraries\GLFW\include;$(SolutionDir)\External Libraries\glm;$(SolutionDir)\External Libraries\GLEW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\External Libraries\assimp\include;$(SolutionDir)\External Libraries\GLFW\include;$(SolutionDir)\External Libraries\glm;$(SolutionDir)\External Libraries\GLEW\include;$(SolutionDir)\External Libraries\imgui;$(SolutionDir)\External Libraries\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -109,7 +115,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\External Libraries\assimp\include;$(SolutionDir)\External Libraries\GLFW\include;$(SolutionDir)\External Libraries\glm;$(SolutionDir)\External Libraries\GLEW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\External Libraries\assimp\include;$(SolutionDir)\External Libraries\GLFW\include;$(SolutionDir)\External Libraries\glm;$(SolutionDir)\External Libraries\GLEW\include;$(SolutionDir)\External Libraries\imgui;$(SolutionDir)\External Libraries\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -124,7 +130,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\External Libraries\assimp\include;$(SolutionDir)\External Libraries\GLFW\include;$(SolutionDir)\External Libraries\glm;$(SolutionDir)\External Libraries\GLEW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\External Libraries\assimp\include;$(SolutionDir)\External Libraries\GLFW\include;$(SolutionDir)\External Libraries\glm;$(SolutionDir)\External Libraries\GLEW\include;$(SolutionDir)\External Libraries\imgui;$(SolutionDir)\External Libraries\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,7 +147,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\External Libraries\assimp\include;$(SolutionDir)\External Libraries\GLFW\include;$(SolutionDir)\External Libraries\glm;$(SolutionDir)\External Libraries\GLEW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\External Libraries\assimp\include;$(SolutionDir)\External Libraries\GLFW\include;$(SolutionDir)\External Libraries\glm;$(SolutionDir)\External Libraries\GLEW\include;$(SolutionDir)\External Libraries\imgui;$(SolutionDir)\External Libraries\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
