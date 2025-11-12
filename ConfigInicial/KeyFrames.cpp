@@ -29,12 +29,17 @@
 #include "Shader.h"
 #include "Camera.h"
 #include "Model.h"
+
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
+#include "Animation.h"
+#include "Animator.h"
+
+
 struct Painting {
-    glm::vec3 pos;          
+    glm::vec3 pos;
     std::string titulo;
     std::string autor;
     int anio;
@@ -72,12 +77,16 @@ void SetupPaintings() {
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void MouseCallback(GLFWwindow* window, double xPos, double yPos);
 void DoMovement();
-void Animation();
+
+
+void Animation_esculturas();
 bool SaveAnimation(const char* path);
 bool LoadAnimation(const char* path);
 void saveFrame(void);
 void resetElements(void);
 void interpolation(void);
+
+
 
 // Window dimensions
 const GLuint WIDTH = 800, HEIGHT = 600;
@@ -358,6 +367,15 @@ int main()
     // Precarga de pinturas (¡clave!)
     SetupPaintings();
 
+
+    // Shader para modelos con huesos
+    Shader shaderEsqueletico("Shader/lighting_skeletical.vs", "Shader/lighting.frag");
+    Model humanModel((char*)"Models/humano-animation.fbx");
+
+    Animation humanAnimation((char*)"Models/humano-animation.fbx", &humanModel);
+    Animator  humanAnimator(&humanAnimation);
+
+
     // VAO/VBO simple (lamparita demo)
     GLuint VBO, VAO;
     glGenVertexArrays(1, &VAO);
@@ -392,7 +410,7 @@ int main()
         // Input
         glfwPollEvents();
         DoMovement();
-        Animation();
+        Animation_esculturas();
 
         // Clear
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -403,6 +421,27 @@ int main()
 
         // Use shader
         lightingShader.Use();
+
+        // Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
+        glfwPollEvents();
+        DoMovement();
+
+
+        humanAnimator.UpdateAnimation(deltaTime);
+
+        // Clear the colorbuffer
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // OpenGL options
+        glEnable(GL_DEPTH_TEST);
+
+
+        glm::mat4 modelTemp = glm::mat4(1.0f); //Temp
+
+        // Use cooresponding shader when setting uniforms/drawing objects
+        lightingShader.Use();
+
 
         glUniform1i(glGetUniformLocation(lightingShader.Program, "diffuse"), 0);
 
@@ -504,6 +543,61 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
 
+
+        // shader para animación por huesos
+        shaderEsqueletico.Use();
+
+        // viewPos (Posición de la cámara)
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "viewPos"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
+
+        // Luz Direccional
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.ambient"), 0.6f, 0.6f, 0.6f);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.diffuse"), 0.6f, 0.6f, 0.6f);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.specular"), 0.3f, 0.3f, 0.3f);
+
+        // Luz Puntual (Point light 1)
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].position"), pointLightPositions[0].x, pointLightPositions[0].y, pointLightPositions[0].z);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].ambient"), lightColor.x, lightColor.y, lightColor.z);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].diffuse"), lightColor.x, lightColor.y, lightColor.z);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].specular"), 1.0f, 0.2f, 0.2f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].constant"), 1.0f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].linear"), 0.045f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].quadratic"), 0.075f);
+
+        // Linterna (SpotLight)
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.position"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.direction"), camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.ambient"), 0.2f, 0.2f, 0.8f);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.diffuse"), 0.2f, 0.2f, 0.8f);
+        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.specular"), 0.0f, 0.0f, 0.0f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.constant"), 1.0f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.linear"), 0.3f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.quadratic"), 0.7f);
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.cutOff"), glm::cos(glm::radians(12.0f)));
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.outerCutOff"), glm::cos(glm::radians(18.0f)));
+
+        // Propiedades del Material
+        glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "material.shininess"), 5.0f);
+        glUniform1i(glGetUniformLocation(shaderEsqueletico.Program, "diffuse"), 0);
+
+
+        glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+        auto boneMatrices = humanAnimator.GetFinalBoneMatrices();
+        for (int i = 0; i < boneMatrices.size(); ++i)
+        {
+            string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
+            glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(boneMatrices[i]));
+        }
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.01));
+        glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        humanModel.Draw(shaderEsqueletico);
+
         // Actualiza pintura cercana (si te alejas, se cierra)
         {
             int nearIdx = FindNearestPainting(camera.GetPosition(), gShowRadius);
@@ -527,7 +621,6 @@ int main()
 
         if (alpha > 0.01f && gCurrentPaint >= 0) {
             const Painting& P = gPaints[gCurrentPaint];
-
             ImGui::SetNextWindowBgAlpha(0.92f * alpha);
             ImGui::SetNextWindowPos(ImVec2(20, 20 + slide), ImGuiCond_Always);
             ImGui::SetNextWindowSize(ImVec2(360, 0), ImGuiCond_Always);
@@ -559,7 +652,7 @@ int main()
                 ImGui::TextWrapped("%s", P.desc.c_str());
                 ImGui::Spacing();
 
-                // Edición opcional en vivo
+
                 static char titleBuf[128] = { 0 };
                 static char authorBuf[128] = { 0 };
                 static int  yearBuf = 2025;
@@ -572,7 +665,7 @@ int main()
                     yearBuf = P.anio;
                     lastShown = gCurrentPaint;
                 }
-                
+
                 if (ImGui::Button("Ocultar (TAB)")) gShowCard = false;
 
                 ImGui::PopStyleVar(); // Alpha
@@ -588,8 +681,6 @@ int main()
         // Swap
         glfwSwapBuffers(window);
     }
-
-    // ====== ImGui SHUTDOWN ======
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -598,41 +689,8 @@ int main()
     return 0;
 }
 
-// ======= Input / Animación =======
+//Animación
 void DoMovement() {
-    // Posición global
-    if (keys[GLFW_KEY_J]) PosX -= 0.01f;
-    if (keys[GLFW_KEY_C]) PosX += 0.01f;
-    if (keys[GLFW_KEY_I]) PosZ -= 0.01f;
-    if (keys[GLFW_KEY_M]) PosZ += 0.01f;
-    if (keys[GLFW_KEY_U]) PosY += 0.01f;
-    if (keys[GLFW_KEY_O]) PosY -= 0.01f;
-
-    // Tronco global
-    if (keys[GLFW_KEY_R]) rotStem += 0.01f;
-    if (keys[GLFW_KEY_F]) rotStem -= 0.01f;
-
-    // Articulaciones/partes
-    if (keys[GLFW_KEY_1]) cue += 0.01f;
-    if (keys[GLFW_KEY_2]) cue -= 0.01f;
-
-    if (keys[GLFW_KEY_3]) Pd += 0.01f;
-    if (keys[GLFW_KEY_4]) Pd -= 0.01f;
-
-    if (keys[GLFW_KEY_5]) Pder += 0.01f;
-    if (keys[GLFW_KEY_6]) Pder -= 0.01f;
-
-    if (keys[GLFW_KEY_7]) Pf += 0.01f;
-    if (keys[GLFW_KEY_8]) Pf -= 0.01f;
-
-    if (keys[GLFW_KEY_9]) Pi += 0.01f;
-    if (keys[GLFW_KEY_0]) Pi -= 0.01f;
-
-    if (keys[GLFW_KEY_Q]) Pizq += 0.01f;
-    if (keys[GLFW_KEY_B]) { Pizq -= 0.01f; } // B ya no crea marcadores, solo si lo dejas presionado aquí
-
-    if (keys[GLFW_KEY_E]) Ptobj += 0.01f;;
-    if (keys[GLFW_KEY_T]) Ptobj -= 0.01f;
 
     // Cámara
     if (keys[GLFW_KEY_W])    camera.ProcessKeyboard(FORWARD, deltaTime);
@@ -663,22 +721,6 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
             play = false;
         }
     }
-    // Guardar keyframe
-    if (key == GLFW_KEY_K && action == GLFW_PRESS) {
-        if (FrameIndex < MAX_FRAMES) saveFrame();
-    }
-    // Guardar animación a archivo
-    if (key == GLFW_KEY_P && action == GLFW_PRESS) {
-        if (SaveAnimation(ANIM_FILE))
-            std::cout << "Animacion guardada en " << ANIM_FILE << "\n";
-        else
-            std::cout << "ERROR: no se pudo guardar " << ANIM_FILE << "\n";
-    }
-    // Luz on/off
-    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-        active = !active;
-        Light1 = active ? glm::vec3(0.2f, 0.8f, 1.0f) : glm::vec3(0.0f);
-    }
 
     // --- TAB: alterna tarjeta solo si hay pintura cercana ---
     if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
@@ -688,7 +730,7 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     }
 }
 
-void Animation() {
+void Animation_esculturas() {
     if (!play) return;
 
     if (i_curr_steps >= i_max_steps) {
