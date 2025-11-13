@@ -105,7 +105,7 @@ bool firstMouse = true;
 glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
 bool active = false;
 
-int gActivePoint = 0;        // 0 = sala principal, 1 = cafetería
+int gActivePoint = 0;        
 float gLightMoveStep = 2.5f; // unidades por segundo
 
 // Positions of the point lights
@@ -114,18 +114,18 @@ glm::vec3 pointLightPositions[] = {
     glm::vec3(4.0f,5.5f, 4.8f) // Cafetería
 };
 
-// === Música de fondo ===
+// Música de fondo 
 ma_engine gAudio;      // motor de audio
 ma_sound  gMusic;      // instancia de la música en loop
 float     gMusicVol = 0.35f;  // volumen inicial (0.0 - 1.0)
 bool      gMusicMuted = false;
 
 
-// Temperaturas aproximadas (RGB) en [0..1]
-const glm::vec3 COLD_RGB = glm::vec3(0.80f, 0.87f, 1.00f); // ~6500–7000 K
-const glm::vec3 WARM_RGB = glm::vec3(1.00f, 0.78f, 0.55f); // ~3000 K
-const glm::vec3 SUN10_RGB = glm::vec3(1.00f, 0.95f, 0.88f); // ~5200–5500 K
-const glm::vec3 SPOT_RGB = glm::vec3(0.75f, 0.82f, 1.00f); // fría para spotlight
+// Temperaturas aproximadas
+const glm::vec3 COLD_RGB = glm::vec3(0.80f, 0.87f, 1.00f); 
+const glm::vec3 WARM_RGB = glm::vec3(1.00f, 0.78f, 0.55f); 
+const glm::vec3 SUN10_RGB = glm::vec3(1.00f, 0.95f, 0.88f); 
+const glm::vec3 SPOT_RGB = glm::vec3(0.75f, 0.82f, 1.00f);
 
 float vertices[] = {
      -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -421,6 +421,7 @@ int main() {
     Model EPi((char*)"Models/Pi.obj");
     Model EPizq((char*)"Models/Pizq.obj");
     Model EPtobj((char*)"Models/Ptobj.obj");
+	Model puerta((char*)"Models/puerta.obj");
 
     // Animación esquelética (humano y vaca)
     Model vaca((char*)"Models/vaca.fbx");
@@ -475,7 +476,7 @@ int main() {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    // Material samplers (nombres típicos)
+    // Material samplers 
     lightingShader.Use();
     glUniform1i(glGetUniformLocation(lightingShader.Program, "material.diffuse"), 0);
     glUniform1i(glGetUniformLocation(lightingShader.Program, "material.specular"), 1);
@@ -501,18 +502,17 @@ int main() {
 
     GLuint cubemapTexture = TextureLoading::LoadCubemap(faces);
 
-    //glm::mat4 projection = glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
     // OpenGL options
     glEnable(GL_DEPTH_TEST);
 
-    // ====== Audio init (miniaudio) ======
+    // Audio init (miniaudio) 
     if (ma_engine_init(NULL, &gAudio) != MA_SUCCESS) {
         std::cerr << "Error: no se pudo inicializar el motor de audio (miniaudio)\n";
     }
     else {
-        // Carga desde archivo y configura LOOP + streaming (consume poca RAM)
-        const char* musicPath = "Audio/DanseMacabre.mp3"; // <-- pon tu ruta real (WAV/OGG/MP3/FLAC)
+        // Carga desde archivo y configura LOOP + streaming 
+        const char* musicPath = "Audio/DanseMacabre.mp3";
         ma_result r = ma_sound_init_from_file(
             &gAudio, musicPath,
             MA_SOUND_FLAG_STREAM, // stream para pistas largas
@@ -564,13 +564,11 @@ int main() {
         GLint projLoc = glGetUniformLocation(lightingShader.Program, "projection");
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-        //glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f)));
 
-        // Iluminación (igual que tu versión, compactado)
+        // Iluminación
         GLint viewPosLoc = glGetUniformLocation(lightingShader.Program, "viewPos");
         glUniform3f(viewPosLoc, camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
 
-        // Luz direccional = sol 10am (ligeramente cálida, dirección oblicua)
         glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.direction"), -0.3f, -1.0f, -0.2f);              
         glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.ambient"), 0.40f * SUN10_RGB.r, 0.40f * SUN10_RGB.g, 0.40f * SUN10_RGB.b);
         glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.diffuse"), 1.00f * SUN10_RGB.r, 1.00f * SUN10_RGB.g, 1.00f * SUN10_RGB.b);
@@ -601,7 +599,7 @@ int main() {
         glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[1].quadratic"), 0.020f);
 
 
-        // Spotlight desde la cámara (frío y ÁNGULO MAYOR)
+        // Spotlight desde la cámara
         glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.position"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
         glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.direction"), camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
 
@@ -613,7 +611,6 @@ int main() {
         glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.linear"), 0.20f);
         glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.quadratic"), 0.20f);
 
-        // Ángulos más grandes (antes 12/18). Ahora 22° interno y 30° externo aprox.
         glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.cutOff"), glm::cos(glm::radians(22.0f)));
         glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.outerCutOff"), glm::cos(glm::radians(30.0f)));
 
@@ -655,6 +652,7 @@ int main() {
         model = base; model = glm::rotate(model, glm::radians(Ptobj), glm::vec3(0, 1, 0));
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));  EPtobj.Draw(lightingShader);
 
+
         // Lámpara demo (cubito)
         // Lámparas demo (cubitos para ver dónde están las point lights)
         lampShader.Use();
@@ -680,7 +678,6 @@ int main() {
         glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "viewPos"),
             camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
 
-        // --- Sol 10am (dirLight) ---
         glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.direction"), -0.3f, -1.0f, -0.2f);
         glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "dirLight.ambient"),
             0.20f * SUN10_RGB.r, 0.20f * SUN10_RGB.g, 0.20f * SUN10_RGB.b);
@@ -700,7 +697,7 @@ int main() {
         glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].linear"), 0.045f);
         glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[0].quadratic"), 0.020f);
 
-        // --- pointLight[1] (cálida, cafetería) ---
+        // --- pointLight[1] ---
         glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[1].position"),
             pointLightPositions[1].x, pointLightPositions[1].y, pointLightPositions[1].z);
         glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[1].ambient"),
@@ -712,7 +709,7 @@ int main() {
         glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[1].linear"), 0.045f);
         glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "pointLights[1].quadratic"), 0.020f);
 
-        // --- spotlight frío y abierto ---
+        // --- spotlight ---
         glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.position"),
             camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
         glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.direction"),
@@ -926,11 +923,11 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
         gMusicMuted = !gMusicMuted;
         ma_sound_set_volume(&gMusic, gMusicMuted ? 0.0f : gMusicVol);
     }
-    if (key == GLFW_KEY_9 && (action == GLFW_PRESS || action == GLFW_REPEAT)) { // '=' o '+'
+    if (key == GLFW_KEY_9 && (action == GLFW_PRESS || action == GLFW_REPEAT)) { 
         gMusicVol = glm::clamp(gMusicVol + 0.05f, 0.0f, 1.0f);
         if (!gMusicMuted) ma_sound_set_volume(&gMusic, gMusicVol);
     }
-    if (key == GLFW_KEY_8 && (action == GLFW_PRESS || action == GLFW_REPEAT)) { // '-'
+    if (key == GLFW_KEY_8 && (action == GLFW_PRESS || action == GLFW_REPEAT)) { 
         gMusicVol = glm::clamp(gMusicVol - 0.05f, 0.0f, 1.0f);
         if (!gMusicMuted) ma_sound_set_volume(&gMusic, gMusicVol);
     }
