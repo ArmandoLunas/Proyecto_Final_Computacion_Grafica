@@ -32,6 +32,7 @@
 #include "Shader.h"
 #include "Camera.h"
 #include "Model.h"
+#include "Texture.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -302,6 +303,68 @@ void interpolation(void) {
 }
 
 int main() {
+
+    // Vertices para el SkyBox
+    GLfloat skyboxVertices[] = {
+        // Positions
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+        1.0f,  1.0f, -1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+        1.0f, -1.0f,  1.0f
+    };
+
+    // Indices para el SkyBox
+    GLuint indices[] =
+    {  // Note that we start from 0!
+        0,1,2,3,
+        4,5,6,7,
+        8,9,10,11,
+        12,13,14,15,
+        16,17,18,19,
+        20,21,22,23,
+        24,25,26,27,
+        28,29,30,31,
+        32,33,34,35
+    };
+
+
     // Init GLFW
     if (!glfwInit()) {
         std::cerr << "Failed to init GLFW\n";
@@ -344,6 +407,7 @@ int main() {
     // Shaders
     Shader lightingShader("Shader/lighting.vs", "Shader/lighting.frag");
     Shader lampShader("Shader/lamp.vs", "Shader/lamp.frag");
+    Shader skyboxShader("Shader/skybox.vs", "Shader/skybox.frag");
     Shader shaderEsqueletico("Shader/lighting_skeletical.vs", "Shader/lighting.frag");
 
     // Models
@@ -392,13 +456,17 @@ int main() {
     SetupPaintings();
 
     // VAO/VBO simple (lamparita demo)
-    GLuint VBO = 0, VAO = 0;
+    GLuint VBO = 0, VAO = 0, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
@@ -411,6 +479,27 @@ int main() {
     lightingShader.Use();
     glUniform1i(glGetUniformLocation(lightingShader.Program, "material.diffuse"), 0);
     glUniform1i(glGetUniformLocation(lightingShader.Program, "material.specular"), 1);
+
+    // skybox
+    GLuint skyboxVBO, skyboxVAO;
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+
+    // Load textures
+    vector <const GLchar*> faces;
+    faces.push_back("SkyBox/right.jpg");
+    faces.push_back("SkyBox/left.jpg");
+    faces.push_back("SkyBox/top.jpg");
+    faces.push_back("SkyBox/bottom.jpg");
+    faces.push_back("SkyBox/back.jpg");
+    faces.push_back("SkyBox/front.jpg");
+
+    GLuint cubemapTexture = TextureLoading::LoadCubemap(faces);
 
     glm::mat4 projection = glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
@@ -667,6 +756,29 @@ int main() {
             glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
             humanModel.Draw(shaderEsqueletico);
         }
+
+        // draw skybox
+        glDepthFunc(GL_LEQUAL);
+        glDisable(GL_CULL_FACE);
+
+        skyboxShader.Use();
+        view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
+
+        glUniform1i(glGetUniformLocation(skyboxShader.Program, "SkyBox"), 5);
+
+        glActiveTexture(GL_TEXTURE5);
+
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+
+        glUniformMatrix4fv(glGetUniformLocation(skyboxShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(skyboxShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+        glBindVertexArray(skyboxVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+
+        glEnable(GL_CULL_FACE);
+        glDepthFunc(GL_LESS);
 
         // Actualiza pintura cercana (si te alejas, se cierra)
         {
