@@ -501,7 +501,7 @@ int main() {
 
     GLuint cubemapTexture = TextureLoading::LoadCubemap(faces);
 
-    glm::mat4 projection = glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
+    //glm::mat4 projection = glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
     // OpenGL options
     glEnable(GL_DEPTH_TEST);
@@ -545,6 +545,12 @@ int main() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 projection = glm::perspective(camera.GetZoom(),
+            (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT,
+            0.1f,
+            1000.0f);
+
         // Shaders activos
         lightingShader.Use();
 
@@ -552,12 +558,13 @@ int main() {
         vacaAnimator.UpdateAnimation(deltaTime);
         humanAnimator.UpdateAnimation(deltaTime);
 
-        glm::mat4 view = camera.GetViewMatrix();
+        //view = camera.GetViewMatrix();
         GLint modelLoc = glGetUniformLocation(lightingShader.Program, "model");
         GLint viewLoc = glGetUniformLocation(lightingShader.Program, "view");
         GLint projLoc = glGetUniformLocation(lightingShader.Program, "projection");
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f)));
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+        //glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f)));
 
         // Iluminación (igual que tu versión, compactado)
         GLint viewPosLoc = glGetUniformLocation(lightingShader.Program, "viewPos");
@@ -614,9 +621,11 @@ int main() {
         glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 8.0f);
 
         // Piso + escultura compuesta
+        glDisable(GL_CULL_FACE);
         glm::mat4 model = glm::mat4(1.0f);
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         Piso.Draw(lightingShader);
+        glEnable(GL_CULL_FACE);
 
         glm::mat4 base = glm::mat4(1.0f);
         base = glm::translate(base, glm::vec3(-7.5f, 1.02f, -13.0f));
