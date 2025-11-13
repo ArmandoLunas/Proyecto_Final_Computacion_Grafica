@@ -759,7 +759,7 @@ int main() {
                 glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(boneMatrices[i]));
             }
             model = glm::mat4(1.0f);
-            model = glm::translate(model, glm::vec3(-0.313893f, 0.1f, -9.00147f));
+            model = glm::translate(model, glm::vec3(1.1513893f, 0.1f, -9.10147f));
 			//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
             model = glm::scale(model, glm::vec3(0.008f));
             glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
@@ -926,11 +926,11 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
         gMusicMuted = !gMusicMuted;
         ma_sound_set_volume(&gMusic, gMusicMuted ? 0.0f : gMusicVol);
     }
-    if (key == GLFW_KEY_EQUAL && (action == GLFW_PRESS || action == GLFW_REPEAT)) { // '=' o '+'
+    if (key == GLFW_KEY_9 && (action == GLFW_PRESS || action == GLFW_REPEAT)) { // '=' o '+'
         gMusicVol = glm::clamp(gMusicVol + 0.05f, 0.0f, 1.0f);
         if (!gMusicMuted) ma_sound_set_volume(&gMusic, gMusicVol);
     }
-    if (key == GLFW_KEY_MINUS && (action == GLFW_PRESS || action == GLFW_REPEAT)) { // '-'
+    if (key == GLFW_KEY_8 && (action == GLFW_PRESS || action == GLFW_REPEAT)) { // '-'
         gMusicVol = glm::clamp(gMusicVol - 0.05f, 0.0f, 1.0f);
         if (!gMusicMuted) ma_sound_set_volume(&gMusic, gMusicVol);
     }
