@@ -18,13 +18,13 @@ using namespace std;
 class Mesh
 {
 public:
-	/*  Mesh Data  */
+	/* Mesh Data  */
 	vector<Vertex> vertices;
 	vector<GLuint> indices;
 	vector<Texture> textures;
 	GLuint VAO;
 
-	/*  Functions  */
+	/* Functions  */
 	// Constructor
 	Mesh(vector<Vertex> vertices, vector<GLuint> indices, vector<Texture> textures)
 	{
@@ -73,10 +73,10 @@ public:
 	}
 
 private:
-	/*  Render data  */
+	/* Render data  */
 	GLuint VBO, EBO;
 
-	/*  Functions    */
+	/* Functions    */
 	void setupMesh()
 	{
 		glGenVertexArrays(1, &this->VAO);

@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="Texture.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\lamp.frag" />
@@ -30,6 +31,8 @@
     <None Include="Shader\modelLoading.frag" />
     <None Include="Shader\modelLoading.vs" />
     <None Include="lighting_skeletical.vs" />
+    <None Include="Shader\SkyBox.frag" />
+    <None Include="Shader\SkyBox.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External Libraries\imgui\backends\imgui_impl_glfw.cpp" />
@@ -38,7 +41,7 @@
     <ClCompile Include="..\External Libraries\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\External Libraries\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\External Libraries\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="KeyFrames.cpp" />
+    <ClCompile Include="ProyectoFinal.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
