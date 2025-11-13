@@ -21,21 +21,35 @@ uniform mat4 finalBoneMatrices[MAX_BONES];
 
 void main()
 {
-    mat4 boneTransform = mat4(0.0);
-    for(int i = 0; i < MAX_BONE_INFLUENCE; i++)
+    // Empezar con la matriz identidad.
+    // Si no hay pesos, la transformación es "no hacer nada".
+    mat4 boneTransform = mat4(1.0);
+
+    // Solo acumular si el vértice está realmente "skineado"
+    if(weights.x > 0.0 || weights.y > 0.0 || weights.z > 0.0 || weights.w > 0.0)
     {
-        if(boneIDs[i] >= 0 && boneIDs[i] < MAX_BONES)
+        boneTransform = mat4(0.0); // Resetear a cero para la acumulación
+        for(int i = 0; i < MAX_BONE_INFLUENCE; i++)
         {
-            boneTransform += finalBoneMatrices[boneIDs[i]] * weights[i];
+            if(boneIDs[i] >= 0 && boneIDs[i] < MAX_BONES)
+            {
+                boneTransform += finalBoneMatrices[boneIDs[i]] * weights[i];
+            }
         }
     }
 
     vec4 deformedPos = boneTransform * vec4(position, 1.0);
-
+    
     gl_Position = projection * view * model * deformedPos;
     FragPos = vec3(model * deformedPos);
 
-    mat3 boneNormalTransform = mat3(transpose(inverse(boneTransform)));
+    // La transformación de la normal también debe usar 'boneTransform'
+    mat3 boneNormalTransform = mat3(1.0);
+    if (determinant(boneTransform) > 0.0001)
+    {
+        boneNormalTransform = mat3(transpose(inverse(boneTransform)));
+    }
+    
     vec3 deformedNormal = boneNormalTransform * normal;
     Normal = mat3(transpose(inverse(model))) * deformedNormal;
 

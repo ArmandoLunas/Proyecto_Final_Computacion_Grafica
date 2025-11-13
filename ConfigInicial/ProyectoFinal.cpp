@@ -427,8 +427,8 @@ int main() {
     Animation vacaAnimation((char*)"Models/vaca.fbx", &vaca);
     Animator vacaAnimator(&vacaAnimation);
 
-    Model humanModel((char*)"Models/humano-animation.fbx");
-    Animation humanAnimation((char*)"Models/humano-animation.fbx", &humanModel);
+    Model humanModel((char*)"Models/guy-walking.fbx");
+    Animation humanAnimation((char*)"Models/guy-walking.fbx", &humanModel);
     Animator humanAnimator(&humanAnimation);
 
     // Inicializa keyframes
@@ -751,8 +751,8 @@ int main() {
             }
             model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(-0.313893f, 0.1f, -9.00147f));
-			model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-            model = glm::scale(model, glm::vec3(0.0046f));
+			//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(0.008f));
             glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
             humanModel.Draw(shaderEsqueletico);
         }
