@@ -56,6 +56,7 @@ std::vector<Painting> gPaints;
 float gShowRadius = 2.0f;   // radio para considerar “cerca”
 int   gCurrentPaint = -1;   // índice de pintura cercana
 bool  gShowCard = false;    // TAB alterna si hay pintura cercana
+bool gFlashLight = true;    // 0 alterna linterna
 
 int FindNearestPainting(const glm::vec3& eye, float radius) {
     int best = -1;
@@ -603,10 +604,18 @@ int main() {
         glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.position"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
         glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.direction"), camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
 
-        glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.ambient"), 0.03f * SPOT_RGB.r, 0.03f * SPOT_RGB.g, 0.03f * SPOT_RGB.b);
-        glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.diffuse"), 0.85f * SPOT_RGB.r, 0.85f * SPOT_RGB.g, 0.85f * SPOT_RGB.b);
-        glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.specular"), 0.25f, 0.28f, 0.35f);
-
+        // modificación para la spotlight
+        if (gFlashLight) {
+            glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.ambient"), 0.03f * SPOT_RGB.r, 0.03f * SPOT_RGB.g, 0.03f * SPOT_RGB.b);
+            glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.diffuse"), 0.85f * SPOT_RGB.r, 0.85f * SPOT_RGB.g, 0.85f * SPOT_RGB.b);
+            glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.specular"), 0.25f, 0.28f, 0.35f);
+        }
+        else {
+            glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.ambient"), 0.0f, 0.0f, 0.0f);
+            glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.diffuse"), 0.0f, 0.0f, 0.0f);
+            glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.specular"), 0.0f, 0.0f, 0.0f);
+        }
+        
         glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.constant"), 1.0f);
         glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.linear"), 0.20f);
         glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.quadratic"), 0.20f);
@@ -714,12 +723,24 @@ int main() {
             camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
         glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.direction"),
             camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
-        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.ambient"),
-            0.03f * SPOT_RGB.r, 0.03f * SPOT_RGB.g, 0.03f * SPOT_RGB.b);
-        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.diffuse"),
-            0.85f * SPOT_RGB.r, 0.85f * SPOT_RGB.g, 0.85f * SPOT_RGB.b);
-        glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.specular"),
-            0.25f, 0.28f, 0.35f);
+
+        if (gFlashLight) {
+            glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.ambient"),
+                0.03f * SPOT_RGB.r, 0.03f * SPOT_RGB.g, 0.03f * SPOT_RGB.b);
+            glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.diffuse"),
+                0.85f * SPOT_RGB.r, 0.85f * SPOT_RGB.g, 0.85f * SPOT_RGB.b);
+            glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.specular"),
+                0.25f, 0.28f, 0.35f);
+        }
+        else {
+            glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.ambient"),
+                0.0f, 0.0f, 0.0f);
+            glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.diffuse"),
+                0.0f, 0.0f, 0.0f);
+            glUniform3f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.specular"),
+                0.0f, 0.0f, 0.0f);
+        }
+        
         glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.constant"), 1.0f);
         glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.linear"), 0.20f);
         glUniform1f(glGetUniformLocation(shaderEsqueletico.Program, "spotLight.quadratic"), 0.20f);
@@ -930,6 +951,11 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     if (key == GLFW_KEY_8 && (action == GLFW_PRESS || action == GLFW_REPEAT)) { 
         gMusicVol = glm::clamp(gMusicVol - 0.05f, 0.0f, 1.0f);
         if (!gMusicMuted) ma_sound_set_volume(&gMusic, gMusicVol);
+    }
+
+    // --- Toggle Flashlight con 0 ---
+    if (key == GLFW_KEY_0 && action == GLFW_PRESS) {
+        gFlashLight = !gFlashLight;
     }
 
 }
