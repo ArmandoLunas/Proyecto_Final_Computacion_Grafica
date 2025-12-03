@@ -128,6 +128,10 @@ float gDoorOffset = 0.0f;
 float gDoorSlideSpeed = 3.5f;
 float gMaxSlideDistance = 1.8f;
 
+bool gDoorIsOpen_second = false;
+float gMaxSlideDistance_second = 1.0f;
+float gDoorOffset_second = 0.0f;
+
 // Temperaturas aproximadas
 const glm::vec3 COLD_RGB = glm::vec3(0.80f, 0.87f, 1.00f); 
 const glm::vec3 WARM_RGB = glm::vec3(1.00f, 0.78f, 0.55f); 
@@ -433,7 +437,10 @@ int main() {
     Model door_right((char*)"Models/door_right.obj");
     Model door_left((char*)"Models/door_left.obj");
 
-    Model puerta_derecha((char*)"Models/puerta_derecha.obj");
+    Model second_door_right((char*)"Models/second_door_right.obj");
+    Model second_door_left((char*)"Models/second_door_left.obj");
+
+    Model ventana1((char*)"Models/ventana1.obj");
 
     // Animación esquelética (humano y vaca)
     Model vaca((char*)"Models/vaca.fbx");
@@ -692,8 +699,49 @@ int main() {
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         door_left.Draw(lightingShader);
 
+        // SEGUNDA PUERTA DERECHA 
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(gDoorOffset_second, 0.0f, 0.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        second_door_right.Draw(lightingShader);
+
+        // SEGUNDA PUERTA IZQUIERDA 
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-gDoorOffset_second, 0.0f, 0.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        second_door_left.Draw(lightingShader);
+
         glEnable(GL_CULL_FACE);
         glUniform1i(transparencyLoc, 0);
+
+        model = glm::mat4(1.0f);
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        ventana1.Draw(lightingShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(3.297f, 0.0f, 0.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        ventana1.Draw(lightingShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(6.52f, 0.0f, 0.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        ventana1.Draw(lightingShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-3.04f, 0.0f, 0.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        ventana1.Draw(lightingShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-5.89f, 0.0f, 0.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        ventana1.Draw(lightingShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-9.02f, 0.0f, 0.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        ventana1.Draw(lightingShader);
 
         // Lámpara demo (cubito)
         // Lámparas demo (cubitos para ver dónde están las point lights)
@@ -953,6 +1001,19 @@ void AnimateDoors() {
             if (gDoorOffset < 0.0f) gDoorOffset = 0.0f;
         }
     }
+
+    if (gDoorIsOpen_second) {
+        if (gDoorOffset_second < gMaxSlideDistance_second) {
+            gDoorOffset_second += gMaxSlideDistance_second * deltaTime;
+            if (gDoorOffset_second > gMaxSlideDistance_second) gDoorOffset_second = gMaxSlideDistance_second;
+        }
+    }
+    else {
+        if (gDoorOffset_second > 0.0f) {
+            gDoorOffset_second -= gMaxSlideDistance_second * deltaTime;
+            if (gDoorOffset_second < 0.0f) gDoorOffset_second = 0.0f;
+        }
+    }
 }
 
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
@@ -1006,9 +1067,14 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
         gFlashLight = !gFlashLight;
     }
 
-    // abrir o cerrar puerta
+    // abrir o cerrar primera puerta
     if (key == GLFW_KEY_P && action == GLFW_PRESS) {
         gDoorIsOpen = !gDoorIsOpen;
+    }
+
+    // abrir o cerrar segunda puerta
+    if (key == GLFW_KEY_O && action == GLFW_PRESS) {
+        gDoorIsOpen_second = !gDoorIsOpen_second;
     }
 }
 
