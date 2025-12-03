@@ -455,6 +455,18 @@ int main() {
     Animation chefAnimation((char*)"Models/chef.fbx", &chefModel);
     Animator chefAnimator(&chefAnimation);
 
+    Model chef2Model((char*)"Models/chef2.fbx");
+    Animation chef2Animation((char*)"Models/chef2.fbx", &chef2Model);
+    Animator chef2Animator(&chef2Animation);
+
+    Model biancaModel((char*)"Models/bianca.fbx");
+    Animation biancaAnimation((char*)"Models/bianca.fbx", &biancaModel);
+    Animator biancaAnimator(&biancaAnimation);
+
+    Model peteModel((char*)"Models/pete.fbx");
+    Animation peteAnimation((char*)"Models/pete.fbx", &peteModel);
+    Animator peteAnimator(&peteAnimation);
+
 
     // Inicializa keyframes
     for (int i = 0; i < MAX_FRAMES; i++) {
@@ -586,6 +598,9 @@ int main() {
         vacaAnimator.UpdateAnimation(deltaTime);
         humanAnimator.UpdateAnimation(deltaTime);
         chefAnimator.UpdateAnimation(deltaTime);
+        chef2Animator.UpdateAnimation(deltaTime);
+        biancaAnimator.UpdateAnimation(deltaTime);
+        peteAnimator.UpdateAnimation(deltaTime);
 
         //view = camera.GetViewMatrix();
         GLint modelLoc = glGetUniformLocation(lightingShader.Program, "model");
@@ -888,6 +903,51 @@ int main() {
             model = glm::scale(model, glm::vec3(0.01f));
             glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
             chefModel.Draw(shaderEsqueletico);
+        }
+
+        {
+            // ----- CHEF2 ----
+            auto chef2BoneMatrix = chef2Animator.GetFinalBoneMatrices();
+            for (size_t i = 0; i < chef2BoneMatrix.size(); ++i) {
+                std::string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
+                glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(chef2BoneMatrix[i]));
+            }
+            model = glm::mat4(1.0f);
+            //model = glm::translate(model, glm::vec3(-0.6f, 0.0f, 0.0f));
+            //model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(0.01f));
+            glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+            chef2Model.Draw(shaderEsqueletico);
+        }
+
+        {
+            // ----- BIANCA ----
+            auto biancaBoneMatrix = biancaAnimator.GetFinalBoneMatrices();
+            for (size_t i = 0; i < biancaBoneMatrix.size(); ++i) {
+                std::string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
+                glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(biancaBoneMatrix[i]));
+            }
+            model = glm::mat4(1.0f);
+            //model = glm::translate(model, glm::vec3(-0.6f, 0.0f, 0.0f));
+            //model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(0.01f));
+            glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+            biancaModel.Draw(shaderEsqueletico);
+        }
+
+        {
+            // ----- PETE ----
+            auto peteBoneMatrix = peteAnimator.GetFinalBoneMatrices();
+            for (size_t i = 0; i < peteBoneMatrix.size(); ++i) {
+                std::string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
+                glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(peteBoneMatrix[i]));
+            }
+            model = glm::mat4(1.0f);
+            //model = glm::translate(model, glm::vec3(-0.6f, 0.0f, 0.0f));
+            //model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(0.01f));
+            glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+            peteModel.Draw(shaderEsqueletico);
         }
 
         // draw skybox
