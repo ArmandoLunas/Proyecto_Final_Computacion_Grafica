@@ -283,22 +283,22 @@ GLint TextureFromFile(const char* path, string directory)
 	std::cout << "========================================" << std::endl;
 	std::cout << "INTENTANDO CARGAR TEXTURA:" << std::endl;
 	std::cout << "  > Ruta (desde FBX): " << path << std::endl;
-	std::cout << "  > Directorio Base (del Modelo): " << directory << std::endl;
 	std::cout << "  > RUTA FINAL: " << filename << std::endl;
 
 	GLuint textureID;
 	glGenTextures(1, &textureID);
 
-	int width, height;
-	unsigned char* image = SOIL_load_image(filename.c_str(), &width, &height, 0, SOIL_LOAD_RGB);
+	int width, height, nrComponents;
+	// CAMBIO 1: Usamos SOIL_LOAD_AUTO para que no fuerce RGB, y pasamos &nrComponents para saber cuántos canales tiene
+	unsigned char* image = SOIL_load_image(filename.c_str(), &width, &height, &nrComponents, SOIL_LOAD_AUTO);
 
-	std::cout << "  > Dimensiones (w, h): " << width << ", " << height << std::endl;
+	std::cout << "  > Dimensiones: " << width << "x" << height << std::endl;
+	std::cout << "  > Canales detectados: " << nrComponents << std::endl;
 
 	if (image == nullptr)
 	{
-		std::cout << "  > ERROR: ¡NO SE PUDO CARGAR LA IMAGEN!" << std::endl;
+		std::cout << "  > ERROR: NO SE PUDO CARGAR LA IMAGEN!" << std::endl;
 		std::cout << "  > Error SOIL: " << SOIL_last_result() << std::endl;
-
 		glDeleteTextures(1, &textureID);
 		return 0;
 	}
@@ -308,27 +308,38 @@ GLint TextureFromFile(const char* path, string directory)
 	}
 	std::cout << "========================================" << std::endl;
 
+	// CAMBIO 2: Determinar el formato basado en los componentes de la imagen
+	GLenum format;
+	if (nrComponents == 1)
+		format = GL_RED;
+	else if (nrComponents == 3)
+		format = GL_RGB;
+	else if (nrComponents == 4)
+		format = GL_RGBA; // <--- ESTO ES LO QUE NECESITABAS PARA LA PUERTA
+	else
+		format = GL_RGB; // Default de seguridad
+
 	// Asignar textura al ID
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
-	// Corregir alineación de OpenGL para texturas con ancho no-múltiplo de 4
+	// Corregir alineación para texturas extrañas
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	// CAMBIO 3: Usar 'format' en lugar de GL_RGB fijo
+	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, image);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
-	// Parameters
+	// Configuración de wrapping
+	// Nota: Para transparencia, a veces GL_CLAMP_TO_EDGE es mejor que GL_REPEAT para evitar bordes raros,
+	// pero GL_REPEAT está bien por ahora.
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	glBindTexture(GL_TEXTURE_2D, 0); // Desenlazar
-
-	// Regresar alineación a su default
+	glBindTexture(GL_TEXTURE_2D, 0);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-
-	SOIL_free_image_data(image); // Liberar memoria
+	SOIL_free_image_data(image);
 
 	return textureID;
 }

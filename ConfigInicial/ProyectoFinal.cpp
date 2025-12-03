@@ -84,6 +84,7 @@ void SetupPaintings() {
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void MouseCallback(GLFWwindow* window, double xPos, double yPos);
 void DoMovement();
+void AnimateDoors();
 
 void Animation_esculturas();
 bool SaveAnimation(const char* path);
@@ -121,6 +122,11 @@ ma_sound  gMusic;      // instancia de la música en loop
 float     gMusicVol = 0.35f;  // volumen inicial (0.0 - 1.0)
 bool      gMusicMuted = false;
 
+// Variables para las puertas
+bool gDoorIsOpen = false;       
+float gDoorOffset = 0.0f;       
+float gDoorSlideSpeed = 3.5f;
+float gMaxSlideDistance = 1.8f;
 
 // Temperaturas aproximadas
 const glm::vec3 COLD_RGB = glm::vec3(0.80f, 0.87f, 1.00f); 
@@ -424,6 +430,11 @@ int main() {
     Model EPtobj((char*)"Models/Ptobj.obj");
 	Model puerta((char*)"Models/puerta.obj");
 
+    Model door_right((char*)"Models/door_right.obj");
+    Model door_left((char*)"Models/door_left.obj");
+
+    Model puerta_derecha((char*)"Models/puerta_derecha.obj");
+
     // Animación esquelética (humano y vaca)
     Model vaca((char*)"Models/vaca.fbx");
     Animation vacaAnimation((char*)"Models/vaca.fbx", &vaca);
@@ -541,10 +552,14 @@ int main() {
         glfwPollEvents();
         DoMovement();
         Animation_esculturas();
+        AnimateDoors();
 
         // Clear
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        GLint transparencyLoc = glGetUniformLocation(lightingShader.Program, "transparency");
+        glUniform1i(transparencyLoc, 0);
 
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection = glm::perspective(camera.GetZoom(),
@@ -661,6 +676,24 @@ int main() {
         model = base; model = glm::rotate(model, glm::radians(Ptobj), glm::vec3(0, 1, 0));
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));  EPtobj.Draw(lightingShader);
 
+        glUniform1i(transparencyLoc, 1);
+
+        glDisable(GL_CULL_FACE);
+
+        // PUERTA DERECHA 
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(gDoorOffset, 0.0f, 0.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        door_right.Draw(lightingShader);
+
+        // PUERTA IZQUIERDA 
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-gDoorOffset, 0.0f, 0.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        door_left.Draw(lightingShader);
+
+        glEnable(GL_CULL_FACE);
+        glUniform1i(transparencyLoc, 0);
 
         // Lámpara demo (cubito)
         // Lámparas demo (cubitos para ver dónde están las point lights)
@@ -907,6 +940,21 @@ void DoMovement() {
 
 }
 
+void AnimateDoors() {
+    if (gDoorIsOpen) {
+        if (gDoorOffset < gMaxSlideDistance) {
+            gDoorOffset += gDoorSlideSpeed * deltaTime;
+            if (gDoorOffset > gMaxSlideDistance) gDoorOffset = gMaxSlideDistance;
+        }
+    }
+    else {
+        if (gDoorOffset > 0.0f) {
+            gDoorOffset -= gDoorSlideSpeed * deltaTime;
+            if (gDoorOffset < 0.0f) gDoorOffset = 0.0f;
+        }
+    }
+}
+
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
     if (key == GLFW_KEY_1 && action == GLFW_PRESS) gActivePoint = 0;
     if (key == GLFW_KEY_2 && action == GLFW_PRESS) gActivePoint = 1;
@@ -958,6 +1006,10 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
         gFlashLight = !gFlashLight;
     }
 
+    // abrir o cerrar puerta
+    if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+        gDoorIsOpen = !gDoorIsOpen;
+    }
 }
 
 void Animation_esculturas() {
