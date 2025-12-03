@@ -451,6 +451,11 @@ int main() {
     Animation humanAnimation((char*)"Models/guy-walking.fbx", &humanModel);
     Animator humanAnimator(&humanAnimation);
 
+    Model chefModel((char*)"Models/chef.fbx");
+    Animation chefAnimation((char*)"Models/chef.fbx", &chefModel);
+    Animator chefAnimator(&chefAnimation);
+
+
     // Inicializa keyframes
     for (int i = 0; i < MAX_FRAMES; i++) {
         KeyFrame[i].PosX = 0;  KeyFrame[i].PosY = 0;  KeyFrame[i].PosZ = 0;
@@ -580,6 +585,7 @@ int main() {
         // Update animaciones por huesos
         vacaAnimator.UpdateAnimation(deltaTime);
         humanAnimator.UpdateAnimation(deltaTime);
+        chefAnimator.UpdateAnimation(deltaTime);
 
         //view = camera.GetViewMatrix();
         GLint modelLoc = glGetUniformLocation(lightingShader.Program, "model");
@@ -838,6 +844,7 @@ int main() {
         glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
         {
+            // ----- COW -----
             auto boneMatrix = vacaAnimator.GetFinalBoneMatrices();
             for (size_t i = 0; i < boneMatrix.size(); ++i) {
                 std::string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
@@ -852,6 +859,9 @@ int main() {
         }
 
         {
+
+            // ----- HUMAN -----
+
             auto boneMatrices = humanAnimator.GetFinalBoneMatrices();
             for (size_t i = 0; i < boneMatrices.size(); ++i) {
                 std::string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
@@ -863,6 +873,21 @@ int main() {
             model = glm::scale(model, glm::vec3(0.008f));
             glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
             humanModel.Draw(shaderEsqueletico);
+        }
+
+        {
+            // ----- CHEF ----
+            auto chefBoneMatrix = chefAnimator.GetFinalBoneMatrices();
+            for (size_t i = 0; i < chefBoneMatrix.size(); ++i) {
+                std::string uniformName = "finalBoneMatrices[" + std::to_string(i) + "]";
+                glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, uniformName.c_str()), 1, GL_FALSE, glm::value_ptr(chefBoneMatrix[i]));
+            }
+            model = glm::mat4(1.0f);
+            //model = glm::translate(model, glm::vec3(-0.6f, 0.0f, 0.0f));
+            //model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(0.01f));
+            glUniformMatrix4fv(glGetUniformLocation(shaderEsqueletico.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+            chefModel.Draw(shaderEsqueletico);
         }
 
         // draw skybox
