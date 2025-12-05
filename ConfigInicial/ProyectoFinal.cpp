@@ -383,7 +383,7 @@ int main() {
     }
 
     // Create a GLFWwindow object
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Equipo 15", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Heroes del Antialiasing", nullptr, nullptr);
     if (nullptr == window) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -441,6 +441,8 @@ int main() {
     Model second_door_left((char*)"Models/second_door_left.obj");
 
     Model ventana1((char*)"Models/ventana1.obj");
+
+    Model box((char*)"Models/box.obj");
 
     // Animación esquelética (humano y vaca)
     Model vaca((char*)"Models/vaca.fbx");
@@ -763,6 +765,11 @@ int main() {
         model = glm::translate(model, glm::vec3(-9.02f, 0.0f, 0.0f));
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         ventana1.Draw(lightingShader);
+
+        model = glm::mat4(1.0f);
+        //model = glm::translate(model, glm::vec3(-9.02f, 0.0f, 0.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        box.Draw(lightingShader);
 
         // Lámpara demo (cubito)
         // Lámparas demo (cubitos para ver dónde están las point lights)
